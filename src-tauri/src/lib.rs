@@ -1,4 +1,5 @@
 mod commands;
+mod diff;
 mod models;
 
 use tauri::{
@@ -14,7 +15,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
-            // Build tray menu
             let open_item = MenuItem::with_id(app, "open", "Open DiffOrbit", true, None::<&str>)?;
             let run_item = MenuItem::with_id(app, "run_now", "Run Now", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -41,8 +41,10 @@ pub fn run() {
                         }
                     }
                     "run_now" => {
-                        // Will be wired to review session in Phase 2
-                        let _ = app.emit("trigger:run_now", ());
+                        let app = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let _ = commands::review::trigger_run_now(app).await;
+                        });
                     }
                     "quit" => {
                         app.exit(0);
@@ -60,9 +62,27 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            // config
             commands::config::get_config,
             commands::config::save_config,
             commands::config::reset_profile,
+            // github
+            commands::github::check_gh_auth,
+            commands::github::list_pending_prs,
+            commands::github::fetch_pr_diff,
+            commands::github::post_inline_comments,
+            commands::github::approve_pr,
+            commands::github::request_changes,
+            // keychain
+            commands::keychain::save_api_key,
+            commands::keychain::has_api_key,
+            commands::keychain::delete_api_key,
+            // review
+            commands::review::trigger_run_now,
+            commands::review::list_reports,
+            commands::review::load_report,
+            commands::review::delete_report,
+            commands::review::get_next_run_time,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

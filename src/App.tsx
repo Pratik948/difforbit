@@ -4,6 +4,7 @@ import Sidebar from "@/components/layout/Sidebar"
 import WindowFrame from "@/components/layout/WindowFrame"
 import Dashboard from "@/pages/Dashboard"
 import Reports from "@/pages/Reports"
+import ReportViewer from "@/pages/ReportViewer"
 import Configuration from "@/pages/Configuration"
 import Profiles from "@/pages/Profiles"
 
@@ -11,7 +12,7 @@ export default function App() {
   const layoutStyle: React.CSSProperties = {
     display: "flex",
     width: "100vw",
-    height: "100vh",
+    height: "100%",
     backgroundColor: colors.bg.base,
     overflow: "hidden",
   }
@@ -30,6 +31,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/reports/:id" element={<ReportViewer />} />
             <Route path="/configuration" element={<Configuration />} />
             <Route path="/profiles" element={<Profiles />} />
           </Routes>
