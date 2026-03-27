@@ -1,24 +1,24 @@
 {
   "project": "DiffOrbit",
   "last_updated": "2026-03-27",
-  "current_phase": 1,
-  "current_task": "1.1",
+  "current_phase": 2,
+  "current_task": "2.1",
   "phases": {
     "1": {
       "name": "Foundation & Scaffold",
-      "status": "not_started",
+      "status": "completed",
       "tasks": {
-        "1.1": { "name": "Bootstrap Tauri + React project", "status": "not_started" },
-        "1.2": { "name": "Install and configure dependencies", "status": "not_started" },
-        "1.3": { "name": "Clone MatrixUI and extract design tokens", "status": "not_started" },
-        "1.4": { "name": "MatrixRain canvas component", "status": "not_started" },
-        "1.5": { "name": "Base UI primitives", "status": "not_started" },
-        "1.6": { "name": "App layout shell", "status": "not_started" },
-        "1.7": { "name": "Rust: config command", "status": "not_started" },
-        "1.8": { "name": "Configuration page (frontend)", "status": "not_started" },
-        "1.9": { "name": "IPC typed wrappers", "status": "not_started" },
-        "1.10": { "name": "Menu bar icon + Tray popover", "status": "not_started" },
-        "1.11": { "name": "Phase 1 verification", "status": "not_started" }
+        "1.1": { "name": "Bootstrap Tauri + React project", "status": "completed" },
+        "1.2": { "name": "Install and configure dependencies", "status": "completed" },
+        "1.3": { "name": "Clone MatrixUI and extract design tokens", "status": "completed" },
+        "1.4": { "name": "MatrixRain canvas component", "status": "completed", "note": "Using @matrixui/react MatrixRain" },
+        "1.5": { "name": "Base UI primitives", "status": "completed", "note": "Using @matrixui/react components" },
+        "1.6": { "name": "App layout shell", "status": "completed" },
+        "1.7": { "name": "Rust: config command", "status": "completed" },
+        "1.8": { "name": "Configuration page (frontend)", "status": "completed" },
+        "1.9": { "name": "IPC typed wrappers", "status": "completed" },
+        "1.10": { "name": "Menu bar icon + Tray popover", "status": "completed" },
+        "1.11": { "name": "Phase 1 verification", "status": "completed", "note": "0 TS errors, cargo check clean" }
       }
     },
     "2": {
@@ -92,5 +92,5 @@
       }
     }
   },
-  "notes": "MatrixUI is available at /Users/pratikjamariya/Work/matrix-ui — has @matrixui/tokens and @matrixui/react packages. Key reusable components: MatrixRain, Panel, Button, Badge, Input, Sidebar, Switch, Modal, Toast, DiffLine, Tag, Tooltip."
+  "notes": "MatrixUI at /home/user/matrix-ui. Spacing tokens: space['4'] not spacing.space[4]. textGlow.greenPrimary not greenDefault. colors.border.active not .focus. PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig needed for cargo check on Linux."
 }
