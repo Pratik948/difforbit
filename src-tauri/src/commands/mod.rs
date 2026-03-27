@@ -3,3 +3,4 @@ pub mod engines;
 pub mod github;
 pub mod keychain;
 pub mod review;
+pub mod scheduler;

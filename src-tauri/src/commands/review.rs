@@ -176,7 +176,5 @@ pub fn delete_report(app: tauri::AppHandle, id: String) -> Result<(), String> {
     std::fs::remove_file(&path).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub fn get_next_run_time() -> Result<Option<String>, String> {
     Ok(None) // wired up in Phase 4
 }

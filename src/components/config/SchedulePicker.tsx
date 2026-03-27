@@ -1,7 +1,8 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { colors, space } from "@matrixui/tokens"
-import { Switch } from "@matrixui/react"
+import { Switch, Button } from "@matrixui/react"
 import type { ScheduleConfig } from "@/types/config"
+import { getLaunchAgentStatus, setLaunchAgent } from "@/ipc/review"
 
 interface SchedulePickerProps {
   schedule: ScheduleConfig
@@ -9,6 +10,23 @@ interface SchedulePickerProps {
 }
 
 export default function SchedulePicker({ schedule, onChange }: SchedulePickerProps) {
+  const [laStatus, setLaStatus] = useState<boolean>(false)
+  const [laLoading, setLaLoading] = useState(false)
+
+  useEffect(() => {
+    getLaunchAgentStatus().then(setLaStatus).catch(() => {})
+  }, [])
+
+  const handleLaToggle = async () => {
+    setLaLoading(true)
+    try {
+      await setLaunchAgent(!laStatus)
+      setLaStatus(v => !v)
+    } finally {
+      setLaLoading(false)
+    }
+  }
+
   const labelStyle: React.CSSProperties = {
     fontFamily: "var(--font-body, monospace)",
     fontSize: "11px",
@@ -30,6 +48,7 @@ export default function SchedulePicker({ schedule, onChange }: SchedulePickerPro
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: space['3'] }}>
       <Switch checked={schedule.enabled} onChange={v => onChange({ ...schedule, enabled: v })} label="Enable scheduled runs" />
+
       {schedule.enabled && (
         <>
           <div style={{ display: "flex", gap: space['4'], alignItems: "center" }}>
@@ -46,6 +65,15 @@ export default function SchedulePicker({ schedule, onChange }: SchedulePickerPro
           <Switch checked={schedule.catchUpOnWake} onChange={v => onChange({ ...schedule, catchUpOnWake: v })} label="Catch up on wake (run missed reviews after sleep)" />
         </>
       )}
+
+      <div style={{ borderTop: `1px solid ${colors.border.default}`, paddingTop: space['3'] }}>
+        <div style={{ ...labelStyle, marginBottom: space['2'] }}>
+          LaunchAgent: <span style={{ color: laStatus ? colors.status.synced : colors.text.ghost }}>{laStatus ? "INSTALLED" : "NOT INSTALLED"}</span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={handleLaToggle} loading={laLoading}>
+          {laStatus ? "Uninstall LaunchAgent" : "Install LaunchAgent"}
+        </Button>
+      </div>
     </div>
   )
 }

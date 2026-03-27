@@ -20,3 +20,11 @@ export async function deleteReport(id: string): Promise<void> {
 export async function getNextRunTime(): Promise<string | null> {
   return invoke<string | null>("get_next_run_time")
 }
+
+export async function getLaunchAgentStatus(): Promise<boolean> {
+  return invoke<boolean>("get_launch_agent_status")
+}
+
+export async function setLaunchAgent(enabled: boolean): Promise<void> {
+  return invoke<void>("set_launch_agent", { enabled })
+}

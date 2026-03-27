@@ -53,6 +53,12 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Start scheduler in background
+            commands::scheduler::start_scheduler(app.handle().clone());
+
+            // Catch-up on wake check
+            commands::scheduler::check_catch_up(app.handle().clone());
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -82,7 +88,11 @@ pub fn run() {
             commands::review::list_reports,
             commands::review::load_report,
             commands::review::delete_report,
-            commands::review::get_next_run_time,
+            // scheduler
+            commands::scheduler::get_next_run_time,
+            commands::scheduler::trigger_run_now_cmd,
+            commands::scheduler::get_launch_agent_status,
+            commands::scheduler::set_launch_agent,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

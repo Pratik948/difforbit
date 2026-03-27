@@ -1,41 +1,37 @@
 {
   "project": "DiffOrbit",
   "last_updated": "2026-03-27",
-  "current_phase": 4,
-  "current_task": "4.1",
+  "current_phase": 5,
+  "current_task": "5.1",
   "phases": {
     "1": { "name": "Foundation & Scaffold", "status": "completed" },
     "2": { "name": "Review Engine", "status": "completed" },
-    "3": {
-      "name": "Report Viewer",
-      "status": "completed",
-      "tasks": {
-        "3.1": { "name": "Reports page", "status": "completed" },
-        "3.2": { "name": "ReportViewer page", "status": "completed" },
-        "3.3": { "name": "PRCard component", "status": "completed" },
-        "3.4": { "name": "VerdictBadge component", "status": "completed" },
-        "3.5": { "name": "IssueCard component", "status": "completed" },
-        "3.6": { "name": "DiffViewer component", "status": "completed" },
-        "3.7": { "name": "CommentToggle component", "status": "completed" },
-        "3.8": { "name": "Diff hunk extraction (Rust)", "status": "completed" },
-        "3.9": { "name": "Diff position map (Rust)", "status": "completed" },
-        "3.10": { "name": "Action bar", "status": "completed" },
-        "3.11": { "name": "Phase 3 verification", "status": "completed", "note": "0 TS errors" }
-      }
-    },
+    "3": { "name": "Report Viewer", "status": "completed" },
     "4": {
       "name": "Scheduler",
-      "status": "not_started",
+      "status": "completed",
       "tasks": {
-        "4.1": { "name": "Rust cron scheduler", "status": "not_started" },
-        "4.2": { "name": "Catch-up on wake", "status": "not_started" },
-        "4.3": { "name": "LaunchAgent integration", "status": "not_started" },
-        "4.4": { "name": "Frontend: next-run display", "status": "not_started" },
-        "4.5": { "name": "Phase 4 verification", "status": "not_started" }
+        "4.1": { "name": "Rust cron scheduler (60s poll loop)", "status": "completed" },
+        "4.2": { "name": "Catch-up on wake", "status": "completed" },
+        "4.3": { "name": "LaunchAgent plist install/uninstall", "status": "completed" },
+        "4.4": { "name": "Frontend next-run display", "status": "completed" },
+        "4.5": { "name": "Phase 4 verification", "status": "completed", "note": "0 TS errors, cargo check clean" }
       }
     },
-    "5": { "name": "Profiles Editor", "status": "not_started" },
+    "5": {
+      "name": "Profiles Editor",
+      "status": "not_started",
+      "tasks": {
+        "5.1": { "name": "Built-in profiles", "status": "completed", "note": "Done in Phase 1 commands/config.rs" },
+        "5.2": { "name": "Profiles page", "status": "not_started" },
+        "5.3": { "name": "ProfileEditor component", "status": "not_started" },
+        "5.4": { "name": "Per-repo profile assignment", "status": "completed", "note": "RepoList already has profile selector" },
+        "5.5": { "name": "Reset built-in profile", "status": "completed", "note": "reset_profile command done in Phase 1" },
+        "5.6": { "name": "JSON import/export", "status": "not_started" },
+        "5.7": { "name": "Phase 5 verification", "status": "not_started" }
+      }
+    },
     "6": { "name": "Polish & Distribution", "status": "not_started" }
   },
-  "notes": "MatrixUI: space['4'], textGlow.greenPrimary, colors.border.active, colors.diff.addedBg/removedBg. PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig for cargo check on Linux."
+  "notes": "MatrixUI: space['4'], textGlow.greenPrimary, colors.border.active, colors.diff.addedBg/removedBg."
 }
