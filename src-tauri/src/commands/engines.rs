@@ -61,40 +61,22 @@ fn truncate_diff(diff: &str) -> (String, bool) {
     (out, truncated)
 }
 
-fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, engine_label: &str) -> (String, bool) {
+fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, _engine_label: &str) -> (String, bool) {
     let (diff_text, was_truncated) = truncate_diff(&pr.diff);
-    let prompt = format!(
-        "{}\n\n\
-        ## PR to Review\n\
-        Repository: {}\n\
-        PR #{}: {}\n\
-        Author: {}\n\
-        Files changed: {}\n\n\
-        ## Diff\n\
-        ```diff\n{}\n```\n\n\
-        ## Instructions\n\
-        Return ONLY raw JSON (no markdown fences, no extra text) matching this exact schema:\n\
-        {{\n\
-          \"verdict\": \"APPROVE | REQUEST_CHANGES | NEEDS_DISCUSSION\",\n\
-          \"summary\": \"2-3 sentence summary\",\n\
-          \"issues\": [{{\n\
-            \"file\": \"exact path or null\",\n\
-            \"line\": 123,\n\
-            \"description\": \"...\",\n\
-            \"severity\": \"High | Medium | Low | NEEDS_VERIFICATION\",\n\
-            \"category\": \"Code Quality | Logic | Stability | Performance | Security | Best Practices\",\n\
-            \"suggested_comment\": \"...\"\n\
-          }}],\n\
-          \"positive_notes\": [\"...\"],\n\
-          \"overall_notes\": \"...\"\n\
-        }}\n\
-        Engine: {}",
-        profile.system_prompt,
-        pr.repo, pr.number, pr.title, pr.author,
-        pr.files.join(", "),
-        diff_text,
-        engine_label,
-    );
+    let file_list: Vec<&str> = pr.files.iter().take(20).map(|s| s.as_str()).collect();
+    let file_list_str = file_list.join(", ");
+    let files_changed = pr.files.len().to_string();
+
+    let prompt = profile.system_prompt
+        .replace("{repo}", &pr.repo)
+        .replace("{number}", &pr.number.to_string())
+        .replace("{title}", &pr.title)
+        .replace("{author}", &pr.author)
+        .replace("{url}", &pr.url)
+        .replace("{files_changed}", &files_changed)
+        .replace("{file_list}", &file_list_str)
+        .replace("{diff}", &diff_text);
+
     (prompt, was_truncated)
 }
 
