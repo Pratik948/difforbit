@@ -96,7 +96,15 @@ pub fn get_config(app: tauri::AppHandle) -> Result<AppConfig, String> {
         return Ok(AppConfig::default());
     }
     let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&data).map_err(|e| e.to_string())
+    let mut config: AppConfig = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+
+    // If the saved config has no profiles (e.g. saved before built-ins were added),
+    // populate with the built-in set so the Profiles page is never empty.
+    if config.profiles.is_empty() {
+        config.profiles = built_in_profiles();
+    }
+
+    Ok(config)
 }
 
 #[tauri::command]
