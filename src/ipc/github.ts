@@ -20,7 +20,8 @@ export async function requestChanges(repo: string, number: number, body: string)
 
 export interface CommentData {
   path: string
-  position: number
+  line: number
+  side: string  // "RIGHT" for additions/context, "LEFT" for deletions
   body: string
 }
 

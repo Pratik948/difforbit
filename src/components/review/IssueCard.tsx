@@ -8,6 +8,7 @@ interface IssueCardProps {
   issue: ReviewIssue
   index: number
   onToggleSelected: (index: number, selected: boolean) => void
+  onEditComment: (index: number, text: string) => void
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -17,8 +18,10 @@ const SEVERITY_COLORS: Record<string, string> = {
   NEEDS_VERIFICATION: colors.status.ahead,
 }
 
-export default function IssueCard({ issue, index, onToggleSelected }: IssueCardProps) {
+export default function IssueCard({ issue, index, onToggleSelected, onEditComment }: IssueCardProps) {
   const [diffOpen, setDiffOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState(issue.suggestedComment)
 
   const sevColor = SEVERITY_COLORS[issue.severity] ?? colors.text.tertiary
 
@@ -71,19 +74,70 @@ export default function IssueCard({ issue, index, onToggleSelected }: IssueCardP
       </div>
 
       {/* Suggested comment */}
-      <div style={{
-        fontFamily: "var(--font-code, monospace)",
-        fontSize: "12px",
-        color: colors.text.tertiary,
-        backgroundColor: colors.bg.elevated,
-        padding: space["2"],
-        borderLeft: `2px solid ${colors.border.default}`,
-        borderRadius: "0 4px 4px 0",
-        marginBottom: space["2"],
-        whiteSpace: "pre-wrap",
-      }}>
-        {issue.suggestedComment}
-      </div>
+      {editing ? (
+        <div style={{ marginBottom: space["2"] }}>
+          <textarea
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            rows={4}
+            style={{
+              width: "100%",
+              fontFamily: "var(--font-code, monospace)",
+              fontSize: "12px",
+              backgroundColor: colors.bg.elevated,
+              color: colors.text.secondary,
+              border: `1px solid ${colors.status.ahead}`,
+              borderRadius: "4px",
+              padding: space["2"],
+              resize: "vertical",
+              boxSizing: "border-box",
+            }}
+          />
+          <div style={{ display: "flex", gap: space["2"], marginTop: space["1"] }}>
+            <button
+              onClick={() => { onEditComment(index, editText); setEditing(false) }}
+              style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "11px", color: colors.status.synced, background: "none", border: `1px solid ${colors.status.synced}`, borderRadius: "3px", padding: `2px ${space["2"]}`, cursor: "pointer" }}
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { setEditText(issue.suggestedComment); setEditing(false) }}
+              style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "11px", color: colors.text.tertiary, background: "none", border: `1px solid ${colors.border.default}`, borderRadius: "3px", padding: `2px ${space["2"]}`, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ position: "relative", marginBottom: space["2"] }}>
+          <div style={{
+            fontFamily: "var(--font-code, monospace)",
+            fontSize: "12px",
+            color: colors.text.tertiary,
+            backgroundColor: colors.bg.elevated,
+            padding: space["2"],
+            paddingRight: "44px",
+            borderLeft: `2px solid ${colors.border.default}`,
+            borderRadius: "0 4px 4px 0",
+            whiteSpace: "pre-wrap",
+          }}>
+            {issue.suggestedComment}
+          </div>
+          <button
+            onClick={() => { setEditText(issue.suggestedComment); setEditing(true) }}
+            title="Edit comment"
+            style={{
+              position: "absolute", top: space["1"], right: space["1"],
+              fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "10px",
+              color: colors.text.tertiary, background: "none",
+              border: `1px solid ${colors.border.default}`, borderRadius: "3px",
+              padding: `1px ${space["1"]}`, cursor: "pointer",
+            }}
+          >
+            edit
+          </button>
+        </div>
+      )}
 
       {/* Controls */}
       <div style={{ display: "flex", alignItems: "center", gap: space["4"] }}>

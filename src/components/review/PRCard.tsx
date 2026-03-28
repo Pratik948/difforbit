@@ -6,12 +6,14 @@ import VerdictBadge from "./VerdictBadge"
 import IssueCard from "./IssueCard"
 import { postInlineComments, approvePr, requestChanges } from "@/ipc/github"
 import type { CommentData } from "@/ipc/github"
-import { triggerReviewChangedFiles } from "@/ipc/review"
+import { triggerForceRun } from "@/ipc/review"
 import { prReviewToMarkdown, saveMarkdown, printAsPdf } from "@/utils/exportReview"
 
 interface PRCardProps {
   review: PRReview
 }
+
+const actionedKey = (review: PRReview) => `difforbit-actioned-${review.pr.repo}-${review.pr.number}`
 
 export default function PRCard({ review: initialReview }: PRCardProps) {
   const [review, setReview] = useState(initialReview)
@@ -20,8 +22,17 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
   const [requestModalOpen, setRequestModalOpen] = useState(false)
   const [posting, setPosting] = useState(false)
   const [approving, setApproving] = useState(false)
-  const [actioned, setActioned] = useState(false)
+  const [exportingMd, setExportingMd] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [actioned, setActioned] = useState(
+    () => localStorage.getItem(actionedKey(initialReview)) === "1"
+  )
   const { addToast } = useToast()
+
+  const markActioned = () => {
+    localStorage.setItem(actionedKey(review), "1")
+    setActioned(true)
+  }
 
   const toggleIssueSelected = (index: number, selected: boolean) => {
     setReview(r => ({
@@ -30,20 +41,24 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
     }))
   }
 
+  const editIssueComment = (index: number, text: string) => {
+    setReview(r => ({
+      ...r,
+      issues: r.issues.map((iss, i) => i === index ? { ...iss, suggestedComment: text } : iss),
+    }))
+  }
+
   const handlePostComments = async () => {
     setPosting(true)
     try {
       const comments: CommentData[] = review.issues
         .filter(iss => iss.selected && iss.file && iss.line)
-        .map(iss => {
-          const position = review.diffMap[iss.file!]?.[iss.line!] ?? 1
-          return { path: iss.file!, position, body: iss.suggestedComment }
-        })
+        .map(iss => ({ path: iss.file!, line: iss.line!, side: "RIGHT", body: iss.suggestedComment }))
 
       const result = await postInlineComments(review.pr.repo, review.pr.number, comments, review.commitSha)
       addToast({ variant: "success", message: `Posted ${result.posted} comment(s).` })
       if (result.failed > 0) addToast({ variant: "error", message: `${result.failed} failed.` })
-      setActioned(true)
+      markActioned()
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
     } finally {
@@ -56,7 +71,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
     try {
       await approvePr(review.pr.repo, review.pr.number)
       addToast({ variant: "success", message: `Approved #${review.pr.number}.` })
-      setActioned(true)
+      markActioned()
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
     } finally {
@@ -69,7 +84,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
       await requestChanges(review.pr.repo, review.pr.number, requestBody)
       addToast({ variant: "success", message: `Requested changes on #${review.pr.number}.` })
       setRequestModalOpen(false)
-      setActioned(true)
+      markActioned()
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
     }
@@ -78,6 +93,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
   const selectedCount = review.issues.filter(i => i.selected).length
 
   const handleExportMd = async () => {
+    setExportingMd(true)
     const md = prReviewToMarkdown(review)
     const filename = `difforbit-pr-${review.pr.number}-${review.pr.repo.replace("/", "-")}.md`
     try {
@@ -85,6 +101,17 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
       addToast({ variant: "success", message: `Saved ${filename} to Downloads` })
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
+    } finally {
+      setExportingMd(false)
+    }
+  }
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true)
+    try {
+      await printAsPdf()
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -158,7 +185,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
             {review.issues.length} issue{review.issues.length !== 1 ? "s" : ""} &mdash; {selectedCount} selected for posting
           </div>
           {review.issues.map((issue, i) => (
-            <IssueCard key={i} issue={issue} index={i} onToggleSelected={toggleIssueSelected} />
+            <IssueCard key={i} issue={issue} index={i} onToggleSelected={toggleIssueSelected} onEditComment={editIssueComment} />
           ))}
         </div>
       )}
@@ -192,11 +219,11 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           Request changes
         </Button>
         <div style={{ marginLeft: "auto", display: "flex", gap: space["2"] }}>
-          <Button variant="ghost" size="sm" onClick={() => triggerReviewChangedFiles().catch(() => {})}>
+          <Button variant="ghost" size="sm" onClick={() => triggerForceRun().catch(() => {})}>
             Re-review
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleExportMd}>Export MD</Button>
-          <Button variant="ghost" size="sm" onClick={printAsPdf}>Export PDF</Button>
+          <Button variant="ghost" size="sm" onClick={handleExportMd} loading={exportingMd}>Export MD</Button>
+          <Button variant="ghost" size="sm" onClick={handleExportPdf} loading={exportingPdf}>Export PDF</Button>
         </div>
       </div>
 

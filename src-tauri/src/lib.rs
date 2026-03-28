@@ -97,6 +97,7 @@ pub fn run() {
             // review
             commands::review::trigger_run_now,
             commands::review::trigger_review_changed_files,
+            commands::review::trigger_force_run,
             commands::review::list_reports,
             commands::review::load_report,
             commands::review::delete_report,

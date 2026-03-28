@@ -154,7 +154,8 @@ pub async fn fetch_pr_diff(
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CommentData {
     pub path: String,
-    pub position: u32,
+    pub line: u32,
+    pub side: String,  // "RIGHT" for additions/context, "LEFT" for deletions
     pub body: String,
 }
 
@@ -183,7 +184,8 @@ pub async fn post_inline_comments(
     let comments_json: Vec<serde_json::Value> = comments.iter().map(|c| {
         serde_json::json!({
             "path": c.path,
-            "position": c.position,
+            "line": c.line,
+            "side": c.side,
             "body": c.body,
         })
     }).collect();
