@@ -2,7 +2,6 @@
 # =============================================================================
 # DiffOrbit — dev.sh
 # Starts the full Tauri dev environment with hot-reload.
-# Automatically ensures MatrixUI is built before launching.
 #
 # Usage:
 #   ./scripts/dev.sh [--frontend-only]
@@ -22,7 +21,6 @@ info() { echo -e "${CYAN}  →${NC} $*"; }
 warn() { echo -e "${YELLOW}  ⚠${NC} $*"; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MATRIXUI_DIR="$(cd "$REPO_ROOT/.." && pwd)/matrix-ui"
 FRONTEND_ONLY=false
 
 for arg in "$@"; do
@@ -40,21 +38,8 @@ echo "${NC}"
 echo "  Mode: $([ "$FRONTEND_ONLY" == true ] && echo 'Frontend only (Vite)' || echo 'Full Tauri dev')"
 echo ""
 
-# ── Check MatrixUI ────────────────────────────────────────────────────────────
-if [[ ! -f "$MATRIXUI_DIR/packages/tokens/dist/index.js" ]]; then
-  warn "MatrixUI not built yet — building..."
-  if [[ ! -d "$MATRIXUI_DIR" ]]; then
-    info "Cloning MatrixUI..."
-    git clone https://github.com/Pratik948/matrix-ui.git "$MATRIXUI_DIR"
-  fi
-  (cd "$MATRIXUI_DIR" && pnpm install && pnpm build)
-  ok "MatrixUI ready"
-else
-  ok "MatrixUI already built"
-fi
-
 # ── Check node_modules ────────────────────────────────────────────────────────
-if [[ ! -d "$REPO_ROOT/node_modules/@matrixui" ]]; then
+if [[ ! -d "$REPO_ROOT/node_modules" ]]; then
   info "Installing frontend deps..."
   (cd "$REPO_ROOT" && npm install)
 fi
