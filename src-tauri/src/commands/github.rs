@@ -84,7 +84,7 @@ pub async fn list_pending_prs(
             .args([
                 "pr", "list",
                 "--repo", &repo,
-                "--reviewer", "@me",
+                "--search", "review-requested:@me",
                 "--state", "open",
                 "--json", "number,title,author,url,updatedAt,headRefOid,files",
             ])
