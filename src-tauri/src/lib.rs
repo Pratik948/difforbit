@@ -1,5 +1,6 @@
 mod commands;
 mod diff;
+mod logger;
 mod models;
 
 use tauri::{
@@ -7,6 +8,9 @@ use tauri::{
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
     Manager,
 };
+
+// Keep the log guard alive for the entire process lifetime.
+static LOG_GUARD: std::sync::OnceLock<logger::LogGuard> = std::sync::OnceLock::new();
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,6 +20,10 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
+            // Initialise file logging as early as possible.
+            let log_dir = app.path().app_data_dir().unwrap().join("logs");
+            LOG_GUARD.get_or_init(|| logger::init(&log_dir));
+
             let open_item = MenuItem::with_id(app, "open", "Open DiffOrbit", true, None::<&str>)?;
             let run_item = MenuItem::with_id(app, "run_now", "Run Now", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

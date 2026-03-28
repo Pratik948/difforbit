@@ -8,6 +8,7 @@ use crate::commands::keychain::get_api_key_internal;
 use crate::diff::{extractor::extract_hunk_for_line, parser::parse_diff};
 use tauri::Emitter;
 use tauri_plugin_shell::ShellExt;
+use tracing::{error, info, warn};
 
 const MAX_DIFF_CHARS: usize = 60_000;
 
@@ -94,7 +95,9 @@ async fn call_anthropic(
     engine: &EngineConfig,
 ) -> Result<String, String> {
     let api_key = get_api_key_internal(app, "difforbit.anthropic")
-        .ok_or("Anthropic API key not set")?;
+        .ok_or("Anthropic API key not set — save it in Configuration → AI Engine")?;
+
+    info!(model = %engine.model, prompt_chars = prompt.len(), "calling Anthropic API");
 
     let client = reqwest::Client::new();
     let body = serde_json::json!({
@@ -111,13 +114,33 @@ async fn call_anthropic(
         .json(&body)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            error!(err = %e, "Anthropic HTTP request failed");
+            e.to_string()
+        })?;
+
+    let status = resp.status();
+    info!(status = %status, "Anthropic response received");
 
     let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    json["content"][0]["text"]
+
+    if let Some(err) = json.get("error") {
+        let msg = format!("Anthropic API error: {err}");
+        error!("{}", msg);
+        return Err(msg);
+    }
+
+    let text = json["content"][0]["text"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| format!("unexpected Anthropic response: {json}"))
+        .ok_or_else(|| {
+            let msg = format!("unexpected Anthropic response shape: {json}");
+            error!("{}", msg);
+            msg
+        })?;
+
+    info!(response_chars = text.len(), "Anthropic response parsed");
+    Ok(text)
 }
 
 async fn call_openai_compat(
@@ -126,9 +149,11 @@ async fn call_openai_compat(
     engine: &EngineConfig,
 ) -> Result<String, String> {
     let api_key = get_api_key_internal(app, "difforbit.openai")
-        .ok_or("OpenAI-compatible API key not set")?;
+        .ok_or("OpenAI-compatible API key not set — save it in Configuration → AI Engine")?;
     let base_url = engine.base_url.as_deref().unwrap_or("https://api.openai.com/v1");
     let url = format!("{base_url}/chat/completions");
+
+    info!(model = %engine.model, url = %url, prompt_chars = prompt.len(), "calling OpenAI-compat API");
 
     let client = reqwest::Client::new();
     let body = serde_json::json!({
@@ -145,13 +170,33 @@ async fn call_openai_compat(
         .json(&body)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            error!(url = %url, err = %e, "OpenAI-compat HTTP request failed");
+            e.to_string()
+        })?;
+
+    let status = resp.status();
+    info!(status = %status, "OpenAI-compat response received");
 
     let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    json["choices"][0]["message"]["content"]
+
+    if let Some(err) = json.get("error") {
+        let msg = format!("OpenAI-compat API error: {err}");
+        error!("{}", msg);
+        return Err(msg);
+    }
+
+    let text = json["choices"][0]["message"]["content"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| format!("unexpected OpenAI response: {json}"))
+        .ok_or_else(|| {
+            let msg = format!("unexpected OpenAI-compat response shape: {json}");
+            error!("{}", msg);
+            msg
+        })?;
+
+    info!(response_chars = text.len(), "OpenAI-compat response parsed");
+    Ok(text)
 }
 
 fn claude_bin() -> String {
@@ -185,17 +230,25 @@ async fn call_claude_code(
 ) -> Result<String, String> {
     let shell = app.shell();
     let claude = claude_bin();
+    info!(claude = %claude, prompt_chars = prompt.len(), "calling claude CLI");
     let output = shell
         .command(&claude)
         .args(["-p", prompt])
         .output()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            error!(claude = %claude, err = %e, "claude CLI spawn failed");
+            e.to_string()
+        })?;
 
     if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        let text = String::from_utf8_lossy(&output.stdout).to_string();
+        info!(response_chars = text.len(), "claude CLI returned");
+        Ok(text)
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).to_string())
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        error!(stderr = %stderr, "claude CLI returned non-zero exit");
+        Err(stderr)
     }
 }
 
@@ -207,22 +260,32 @@ pub async fn run_engine(
 ) -> Result<PRReview, String> {
     let engine_label = format!("{}/{}", engine.r#type, engine.model);
     let (prompt, diff_truncated) = build_prompt(pr, profile, &engine_label);
+    info!(
+        pr = pr.number, engine = %engine_label, profile = %profile.name,
+        prompt_chars = prompt.len(), diff_truncated, "prompt built"
+    );
 
     if diff_truncated {
+        warn!(pr = pr.number, "diff was truncated to fit context limit");
         let _ = app.emit("review:warning", serde_json::json!({
             "pr_number": pr.number,
             "message": "Diff was truncated to fit context limit — some files were omitted"
         }));
     }
 
+    info!(pr = pr.number, engine = %engine.r#type, "dispatching to engine");
     let raw = match engine.r#type.as_str() {
         "anthropic" => call_anthropic(app, &prompt, engine).await?,
         "openai_compatible" => call_openai_compat(app, &prompt, engine).await?,
         "claude_code" => call_claude_code(app, &prompt).await?,
         t => return Err(format!("unknown engine type: {t}")),
     };
+    info!(pr = pr.number, raw_chars = raw.len(), "engine returned raw output");
 
-    let raw_review = extract_json(&raw)?;
+    let raw_review = extract_json(&raw).map_err(|e| {
+        error!(pr = pr.number, err = %e, raw = %&raw[..raw.len().min(500)], "JSON parse failed");
+        e
+    })?;
 
     // Build diff map
     let diff_map = parse_diff(&pr.diff);
