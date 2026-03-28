@@ -1,43 +1,68 @@
 @import "tailwindcss";
 
-/* ── Shadcn CSS variable layer ─────────────────────────────────────────── */
-/* Mapped from --do-* tokens so applyTheme() drives everything automatically */
-:root {
-  --background:          var(--do-bg-base);
-  --foreground:          var(--do-text-primary);
-  --card:                var(--do-bg-surface);
-  --card-foreground:     var(--do-text-primary);
-  --popover:             var(--do-bg-elevated);
-  --popover-foreground:  var(--do-text-primary);
-  --primary:             var(--do-accent);
-  --primary-foreground:  var(--do-bg-base);
-  --secondary:           var(--do-bg-elevated);
-  --secondary-foreground: var(--do-text-secondary);
-  --muted:               var(--do-bg-elevated);
-  --muted-foreground:    var(--do-text-tertiary);
-  --accent:              var(--do-bg-elevated);
-  --accent-foreground:   var(--do-text-primary);
-  --destructive:         var(--do-danger);
-  --destructive-foreground: #ffffff;
-  --border:              var(--do-border);
-  --input:               var(--do-border);
-  --ring:                var(--do-border-active);
-  --radius:              0.375rem;
-  --chart-1: var(--do-accent);
-  --chart-2: var(--do-accent-cyan);
-  --chart-3: var(--do-warning);
-  --chart-4: var(--do-danger);
-  --chart-5: var(--do-success);
+/* ── Tell Tailwind v4 about our shadcn CSS variable tokens ─────────────────
+   Without @theme inline, bg-background / text-foreground / bg-primary etc.
+   are unknown utility classes and shadcn components render unstyled.          */
+@theme inline {
+  --color-background:             var(--background);
+  --color-foreground:             var(--foreground);
+  --color-card:                   var(--card);
+  --color-card-foreground:        var(--card-foreground);
+  --color-popover:                var(--popover);
+  --color-popover-foreground:     var(--popover-foreground);
+  --color-primary:                var(--primary);
+  --color-primary-foreground:     var(--primary-foreground);
+  --color-secondary:              var(--secondary);
+  --color-secondary-foreground:   var(--secondary-foreground);
+  --color-muted:                  var(--muted);
+  --color-muted-foreground:       var(--muted-foreground);
+  --color-accent:                 var(--accent);
+  --color-accent-foreground:      var(--accent-foreground);
+  --color-destructive:            var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:                 var(--border);
+  --color-input:                  var(--input);
+  --color-ring:                   var(--ring);
+  --radius-sm:   calc(var(--radius) - 4px);
+  --radius-md:   calc(var(--radius) - 2px);
+  --radius-lg:   var(--radius);
+  --radius-xl:   calc(var(--radius) + 4px);
 }
 
-/* ── Global resets ─────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Shadcn CSS variable layer ─────────────────────────────────────────────
+   Mapped from --do-* tokens so applyTheme() drives everything automatically  */
+:root {
+  --background:               var(--do-bg-base);
+  --foreground:               var(--do-text-primary);
+  --card:                     var(--do-bg-surface);
+  --card-foreground:          var(--do-text-primary);
+  --popover:                  var(--do-bg-elevated);
+  --popover-foreground:       var(--do-text-primary);
+  --primary:                  var(--do-accent);
+  --primary-foreground:       var(--do-bg-base);
+  --secondary:                var(--do-bg-elevated);
+  --secondary-foreground:     var(--do-text-secondary);
+  --muted:                    var(--do-bg-elevated);
+  --muted-foreground:         var(--do-text-tertiary);
+  --accent:                   var(--do-bg-elevated);
+  --accent-foreground:        var(--do-text-primary);
+  --destructive:              var(--do-danger);
+  --destructive-foreground:   #ffffff;
+  --border:                   var(--do-border);
+  --input:                    var(--do-border);
+  --ring:                     var(--do-border-active);
+  --radius:                   0.375rem;
+}
+
+/* ── Global resets ─────────────────────────────────────────────────────────*/
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   background-color: var(--do-bg-base, #ffffff);
   color: var(--do-text-primary, #000);
   font-family: var(--font-body, 'Inter', system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
+  margin: 0;
 }
 
 ::-webkit-scrollbar       { width: 4px; background: var(--do-bg-base); }
