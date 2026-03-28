@@ -90,6 +90,7 @@ pub fn run() {
             commands::review::list_reports,
             commands::review::load_report,
             commands::review::delete_report,
+            commands::review::send_welcome_notification,
             // scheduler
             commands::scheduler::get_next_run_time,
             commands::scheduler::trigger_run_now_cmd,
