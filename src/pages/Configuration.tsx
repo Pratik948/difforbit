@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel, Button, Input, useToast } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel, Button, Input, useToast } from "@/components/ui"
 import { useConfigStore } from "@/store/configStore"
 import RepoList from "@/components/config/RepoList"
 import EngineSelector from "@/components/config/EngineSelector"

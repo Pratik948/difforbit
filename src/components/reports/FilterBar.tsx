@@ -1,4 +1,4 @@
-import { colors, space } from "@matrixui/tokens"
+import { colors, space } from "@/styles/tokens"
 
 export type VerdictFilter = "ALL" | "APPROVE" | "REQUEST_CHANGES" | "NEEDS_DISCUSSION"
 export type DateFilter = "ALL" | "TODAY" | "WEEK"

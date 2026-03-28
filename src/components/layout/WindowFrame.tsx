@@ -1,6 +1,6 @@
 import React from "react"
-import { colors } from "@matrixui/tokens"
-import { MatrixRain } from "@matrixui/react"
+import { colors } from "@/styles/tokens"
+import MatrixRain from "@/components/rain/MatrixRain"
 
 interface WindowFrameProps {
   children: React.ReactNode

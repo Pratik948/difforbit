@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { colors, space } from "@matrixui/tokens"
-import { Button, Input } from "@matrixui/react"
+import { colors, space } from "@/styles/tokens"
+import { Button, Input } from "@/components/ui"
 import type { EngineConfig, EngineType } from "@/types/engine"
 import { hasApiKey, saveApiKey, deleteApiKey } from "@/ipc/engines"
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel, Button, useToast } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel, Button, useToast } from "@/components/ui"
 import { useConfigStore } from "@/store/configStore"
 import ProfileEditor from "@/components/config/ProfileEditor"
 import type { ReviewProfile } from "@/types/config"

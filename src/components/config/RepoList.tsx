@@ -1,6 +1,6 @@
 import React, { useState } from "react"
-import { colors, space } from "@matrixui/tokens"
-import { Button, Input, Switch } from "@matrixui/react"
+import { colors, space } from "@/styles/tokens"
+import { Button, Input, Switch } from "@/components/ui"
 import type { RepoConfig, ReviewProfile } from "@/types/config"
 
 interface RepoListProps {
