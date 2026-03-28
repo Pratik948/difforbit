@@ -13,6 +13,10 @@ export async function triggerReviewChangedFiles(): Promise<void> {
   return invoke<void>("trigger_review_changed_files")
 }
 
+export async function triggerForceRun(): Promise<void> {
+  return invoke<void>("trigger_force_run")
+}
+
 export async function listReports(): Promise<ReportMeta[]> {
   return invoke<ReportMeta[]>("list_reports")
 }

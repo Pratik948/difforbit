@@ -75,6 +75,11 @@ pub async fn trigger_review_changed_files(app: tauri::AppHandle) -> Result<(), S
     run_review_session(app, false, true).await
 }
 
+#[tauri::command]
+pub async fn trigger_force_run(app: tauri::AppHandle) -> Result<(), String> {
+    run_review_session(app, true, false).await
+}
+
 pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_files_only: bool) -> Result<(), String> {
     use crate::diff::extractor::filter_diff_to_files;
 
