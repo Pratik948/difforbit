@@ -99,7 +99,10 @@ async fn call_anthropic(
 
     info!(model = %engine.model, prompt_chars = prompt.len(), "calling Anthropic API");
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| e.to_string())?;
     let body = serde_json::json!({
         "model": engine.model,
         "max_tokens": engine.max_tokens,
@@ -155,7 +158,10 @@ async fn call_openai_compat(
 
     info!(model = %engine.model, url = %url, prompt_chars = prompt.len(), "calling OpenAI-compat API");
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| e.to_string())?;
     let body = serde_json::json!({
         "model": engine.model,
         "max_tokens": engine.max_tokens,
@@ -231,15 +237,27 @@ async fn call_claude_code(
     let shell = app.shell();
     let claude = claude_bin();
     info!(claude = %claude, prompt_chars = prompt.len(), "calling claude CLI");
-    let output = shell
-        .command(&claude)
-        .args(["-p", prompt])
-        .output()
-        .await
-        .map_err(|e| {
+
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(180),
+        shell
+            .command(&claude)
+            .args(["-p", prompt])
+            .output(),
+    )
+    .await;
+
+    let output = match result {
+        Ok(Ok(o)) => o,
+        Ok(Err(e)) => {
             error!(claude = %claude, err = %e, "claude CLI spawn failed");
-            e.to_string()
-        })?;
+            return Err(e.to_string());
+        }
+        Err(_) => {
+            error!(claude = %claude, "claude CLI timed out after 180s");
+            return Err("claude CLI timed out after 180 seconds".to_string());
+        }
+    };
 
     if output.status.success() {
         let text = String::from_utf8_lossy(&output.stdout).to_string();
@@ -248,7 +266,11 @@ async fn call_claude_code(
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         error!(stderr = %stderr, "claude CLI returned non-zero exit");
-        Err(stderr)
+        Err(if stderr.is_empty() {
+            "claude CLI exited with non-zero status and no stderr output".to_string()
+        } else {
+            stderr
+        })
     }
 }
 
