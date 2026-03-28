@@ -233,18 +233,24 @@ fn claude_bin() -> String {
 async fn call_claude_code(
     app: &tauri::AppHandle,
     prompt: &str,
+    engine: &EngineConfig,
 ) -> Result<String, String> {
     let shell = app.shell();
     let claude = claude_bin();
-    info!(claude = %claude, prompt_chars = prompt.len(), "calling claude CLI");
+    info!(claude = %claude, model = %engine.model, prompt_chars = prompt.len(), "calling claude CLI");
 
     // --dangerously-skip-permissions is required for non-interactive (no-TTY) use;
     // without it the CLI blocks on a consent prompt that never gets answered.
+    let mut args = vec!["-p", prompt, "--dangerously-skip-permissions"];
+    if !engine.model.trim().is_empty() {
+        args.extend(["--model", engine.model.trim()]);
+    }
+
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(180),
         shell
             .command(&claude)
-            .args(["-p", prompt, "--dangerously-skip-permissions"])
+            .args(&args)
             .output(),
     )
     .await;
@@ -301,7 +307,7 @@ pub async fn run_engine(
     let raw = match engine.r#type.as_str() {
         "anthropic" => call_anthropic(app, &prompt, engine).await?,
         "openai_compatible" => call_openai_compat(app, &prompt, engine).await?,
-        "claude_code" => call_claude_code(app, &prompt).await?,
+        "claude_code" => call_claude_code(app, &prompt, engine).await?,
         t => return Err(format!("unknown engine type: {t}")),
     };
     info!(pr = pr.number, raw_chars = raw.len(), "engine returned raw output");
