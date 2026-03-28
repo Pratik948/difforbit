@@ -78,31 +78,43 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
     use crate::diff::extractor::filter_diff_to_files;
 
     let config = get_config(app.clone())?;
+
+    if config.repos.is_empty() {
+        let _ = app.emit("review:completed", serde_json::json!({
+            "report_id": "",
+            "pr_count": 0,
+            "message": "No repositories configured. Add a repo in Configuration."
+        }));
+        return Ok(());
+    }
+
     let seen = load_seen(&app);
+    let mut fetch_errors: Vec<String> = Vec::new();
 
     // Collect PRs to review
     let mut prs_to_review = Vec::new();
     for repo_cfg in config.repos.iter().filter(|r| r.enabled) {
         let repo = format!("{}/{}", repo_cfg.owner, repo_cfg.repo);
-        let prs = crate::commands::github::list_pending_prs(
-            app.clone(),
-            vec![repo_cfg.clone()],
-        ).await.unwrap_or_default();
-
-        for pr in prs {
-            if !force {
-                if let Some(repo_seen) = seen.get(&repo) {
-                    if let Some(entry) = repo_seen.get(&pr.number.to_string()) {
-                        if entry.head_sha == pr.head_sha && !changed_files_only {
-                            continue; // already reviewed, no new commits
-                        }
-                        if entry.head_sha == pr.head_sha && changed_files_only {
-                            continue; // no new commits — nothing to re-review
+        match crate::commands::github::list_pending_prs(app.clone(), vec![repo_cfg.clone()]).await {
+            Ok(prs) => {
+                for pr in prs {
+                    if !force {
+                        if let Some(repo_seen) = seen.get(&repo) {
+                            if let Some(entry) = repo_seen.get(&pr.number.to_string()) {
+                                if entry.head_sha == pr.head_sha {
+                                    continue; // already reviewed, no new commits
+                                }
+                            }
                         }
                     }
+                    prs_to_review.push((pr, repo_cfg.profile_id.clone()));
                 }
             }
-            prs_to_review.push((pr, repo_cfg.profile_id.clone()));
+            Err(e) => {
+                let msg = format!("Failed to fetch PRs for {repo}: {e}");
+                fetch_errors.push(msg.clone());
+                let _ = app.emit("review:error", serde_json::json!({ "message": msg }));
+            }
         }
     }
 
@@ -110,7 +122,16 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
     let _ = app.emit("review:started", serde_json::json!({ "total_prs": total }));
 
     if total == 0 {
-        let _ = app.emit("review:completed", serde_json::json!({ "report_id": "" }));
+        let message = if !fetch_errors.is_empty() {
+            fetch_errors.join("; ")
+        } else {
+            "No open PRs found where you are a requested reviewer.".to_string()
+        };
+        let _ = app.emit("review:completed", serde_json::json!({
+            "report_id": "",
+            "pr_count": 0,
+            "message": message
+        }));
         return Ok(());
     }
 
@@ -209,17 +230,22 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
         let _ = std::fs::write(&path, data);
     }
 
-    let _ = app.emit("review:completed", serde_json::json!({ "report_id": report_id }));
-
-    // macOS notification
     let approved = report.reviews.iter().filter(|r| r.verdict == "APPROVE").count();
     let changes  = report.reviews.iter().filter(|r| r.verdict == "REQUEST_CHANGES").count();
     let issues_total: usize = report.reviews.iter().map(|r| r.issues.len()).sum();
-    let body = format!(
-        "{} PRs reviewed · {} issues · ✅ {} approved · ⚠ {} need changes",
+    let summary = format!(
+        "{} PRs reviewed · {} issues · {} approved · {} need changes",
         report.reviews.len(), issues_total, approved, changes
     );
-    notify(&app, "DiffOrbit — Review complete", &body);
+
+    let _ = app.emit("review:completed", serde_json::json!({
+        "report_id": report_id,
+        "pr_count": report.reviews.len(),
+        "message": summary
+    }));
+
+    // macOS notification
+    notify(&app, "DiffOrbit — Review complete", &summary);
 
     Ok(())
 }

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import { colors, space, textGlow } from "@/styles/tokens"
 import { Panel, Button } from "@/components/ui"
 import { useReviewStore } from "@/store/reviewStore"
-import { useTauriEvents } from "@/hooks/useTauriEvents"
 import { useScheduler } from "@/hooks/useScheduler"
 import { triggerRunNow } from "@/ipc/review"
 import { useConfigStore } from "@/store/configStore"
@@ -11,14 +10,21 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard"
 import { ShortcutsHelpModal } from "@/components/ui/ShortcutsHelpModal"
 import { useHelpShortcut } from "@/hooks/useKeyboardShortcuts"
 
+function formatRelativeTime(isoStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000)
+  if (diff < 60) return "just now"
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
+
 export default function Dashboard() {
-  const { runStatus, progress, lastReportId } = useReviewStore()
+  const { runStatus, progress, lastReportId, lastRun, lastError } = useReviewStore()
   const { nextRunLabel } = useScheduler()
   const { config, loading, saveConfig } = useConfigStore()
   const navigate = useNavigate()
   const [showHelp, setShowHelp] = useState(false)
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
-  useTauriEvents()
   useHelpShortcut(() => setShowHelp(true))
 
   const handleRunNow = async () => {
@@ -104,12 +110,32 @@ export default function Dashboard() {
       <Panel style={{ padding: space["4"], marginBottom: space["4"] }}>
         {row("Status", <span style={{ color: statusColor, textTransform: "capitalize" }}>{runStatus}</span>)}
         {row("Next run", nextRunLabel)}
-        {lastReportId && row("Last report", (
+        {lastRun && row("Last run", (
           <span>
-            {lastReportId}{" "}
-            <Button variant="ghost" size="sm" onClick={() => navigate("/reports")}>View</Button>
+            {formatRelativeTime(lastRun.at)}
+            {" — "}
+            <span style={{ color: lastRun.prCount > 0 ? colors.status.synced : colors.text.tertiary }}>
+              {lastRun.message}
+            </span>
           </span>
         ))}
+        {lastRun?.reportId && row("Report", (
+          <Button variant="ghost" size="sm" onClick={() => navigate("/reports")}>View report</Button>
+        ))}
+        {lastError && !lastRun && (
+          <div style={{
+            marginTop: space["2"],
+            padding: `${space["2"]} ${space["3"]}`,
+            borderRadius: "4px",
+            background: `${colors.status.behind}10`,
+            border: `1px solid ${colors.status.behind}44`,
+            fontSize: "12px",
+            color: colors.status.behind,
+            fontFamily: "var(--font-body, system-ui, sans-serif)",
+          }}>
+            Error: {lastError}
+          </div>
+        )}
 
         {runStatus === "running" && (
           <div style={{ marginBottom: space["3"] }}>
