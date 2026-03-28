@@ -31,4 +31,5 @@ export interface AppConfig {
   profiles: ReviewProfile[]
   showDiff: boolean
   diffContext: number
+  onboardingComplete: boolean
 }

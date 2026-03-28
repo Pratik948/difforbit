@@ -5,6 +5,10 @@ export async function triggerRunNow(): Promise<void> {
   return invoke<void>("trigger_run_now")
 }
 
+export async function triggerReviewChangedFiles(): Promise<void> {
+  return invoke<void>("trigger_review_changed_files")
+}
+
 export async function listReports(): Promise<ReportMeta[]> {
   return invoke<ReportMeta[]>("list_reports")
 }

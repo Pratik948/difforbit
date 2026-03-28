@@ -47,6 +47,38 @@ pub fn extract_hunk_for_line(
     }
 }
 
+/// Filter a unified diff to only include hunks for the given filenames.
+/// Used for re-review-changed-files: only send diffs for files that changed since last review.
+pub fn filter_diff_to_files(diff: &str, files: &[String]) -> String {
+    let mut out = String::new();
+    let mut include = false;
+    let mut current_block = String::new();
+
+    for line in diff.lines() {
+        if line.starts_with("diff --git") {
+            // Flush previous block
+            if include && !current_block.is_empty() {
+                out.push_str(&current_block);
+            }
+            current_block = format!("{line}\n");
+            include = false;
+        } else if line.starts_with("+++ b/") {
+            let fname = &line[6..];
+            include = files.iter().any(|f| f == fname);
+            current_block.push_str(line);
+            current_block.push('\n');
+        } else {
+            current_block.push_str(line);
+            current_block.push('\n');
+        }
+    }
+    // Flush last block
+    if include && !current_block.is_empty() {
+        out.push_str(&current_block);
+    }
+    out
+}
+
 fn parse_new_start(hunk: &str) -> Option<u32> {
     let plus = hunk.split('+').nth(1)?;
     let num = plus.split(',').next()?.split(' ').next()?;

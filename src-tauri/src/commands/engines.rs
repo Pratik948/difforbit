@@ -6,10 +6,64 @@ use crate::models::{
 };
 use crate::commands::keychain::get_api_key_internal;
 use crate::diff::{extractor::extract_hunk_for_line, parser::parse_diff};
+use tauri::Emitter;
 use tauri_plugin_shell::ShellExt;
 
-fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, engine_label: &str) -> String {
-    format!(
+const MAX_DIFF_CHARS: usize = 60_000;
+
+/// Truncate a unified diff to stay within MAX_DIFF_CHARS.
+/// Keeps as many complete file diffs as possible; appends a truncation notice.
+fn truncate_diff(diff: &str) -> (String, bool) {
+    if diff.len() <= MAX_DIFF_CHARS {
+        return (diff.to_string(), false);
+    }
+    let mut out = String::with_capacity(MAX_DIFF_CHARS);
+    let mut truncated = false;
+    let mut file_count = 0usize;
+    let mut skipped = 0usize;
+
+    // Split on file headers (lines starting with "diff --git" or "---")
+    let mut current_file = String::new();
+    for line in diff.lines() {
+        if line.starts_with("diff --git") {
+            // Flush previous file block if it fits
+            if !current_file.is_empty() {
+                if out.len() + current_file.len() <= MAX_DIFF_CHARS {
+                    out.push_str(&current_file);
+                    file_count += 1;
+                } else {
+                    skipped += 1;
+                    truncated = true;
+                }
+            }
+            current_file = format!("{line}\n");
+        } else {
+            current_file.push_str(line);
+            current_file.push('\n');
+        }
+    }
+    // Flush final file
+    if !current_file.is_empty() {
+        if out.len() + current_file.len() <= MAX_DIFF_CHARS {
+            out.push_str(&current_file);
+            file_count += 1;
+        } else {
+            skipped += 1;
+            truncated = true;
+        }
+    }
+
+    if truncated {
+        out.push_str(&format!(
+            "\n// [DiffOrbit: diff truncated — showed {file_count} files, omitted {skipped} files to stay within context limit]\n"
+        ));
+    }
+    (out, truncated)
+}
+
+fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, engine_label: &str) -> (String, bool) {
+    let (diff_text, was_truncated) = truncate_diff(&pr.diff);
+    let prompt = format!(
         "{}\n\n\
         ## PR to Review\n\
         Repository: {}\n\
@@ -38,9 +92,10 @@ fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, engine_label: &str) -
         profile.system_prompt,
         pr.repo, pr.number, pr.title, pr.author,
         pr.files.join(", "),
-        pr.diff,
+        diff_text,
         engine_label,
-    )
+    );
+    (prompt, was_truncated)
 }
 
 fn extract_json(raw: &str) -> Result<RawReview, String> {
@@ -143,7 +198,14 @@ pub async fn run_engine(
     engine: &EngineConfig,
 ) -> Result<PRReview, String> {
     let engine_label = format!("{}/{}", engine.r#type, engine.model);
-    let prompt = build_prompt(pr, profile, &engine_label);
+    let (prompt, diff_truncated) = build_prompt(pr, profile, &engine_label);
+
+    if diff_truncated {
+        let _ = app.emit("review:warning", serde_json::json!({
+            "pr_number": pr.number,
+            "message": "Diff was truncated to fit context limit — some files were omitted"
+        }));
+    }
 
     let raw = match engine.r#type.as_str() {
         "anthropic" => call_anthropic(app, &prompt, engine).await?,

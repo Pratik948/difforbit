@@ -14,6 +14,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let open_item = MenuItem::with_id(app, "open", "Open DiffOrbit", true, None::<&str>)?;
             let run_item = MenuItem::with_id(app, "run_now", "Run Now", true, None::<&str>)?;
@@ -85,6 +86,7 @@ pub fn run() {
             commands::keychain::delete_api_key,
             // review
             commands::review::trigger_run_now,
+            commands::review::trigger_review_changed_files,
             commands::review::list_reports,
             commands::review::load_report,
             commands::review::delete_report,
