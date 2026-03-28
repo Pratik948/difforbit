@@ -242,7 +242,7 @@ function StepAIEngine() {
           </p>
           <div style={{ display: "flex", gap: space['2'] }}>
             <Input
-              variant="green"
+             
               value={apiKey}
               onChange={e => { setApiKey(e.target.value); setSaved(false) }}
               placeholder="sk-ant-..."
@@ -283,9 +283,9 @@ function StepAddRepo() {
         Add a GitHub repository to watch. DiffOrbit will poll it for PRs where you're a requested reviewer.
       </p>
       <div style={{ display: "flex", gap: space['2'], marginBottom: space['2'] }}>
-        <Input variant="green" value={owner} onChange={e => setOwner(e.target.value)} placeholder="owner" />
+        <Input value={owner} onChange={e => setOwner(e.target.value)} placeholder="owner" />
         <span style={{ color: colors.text.tertiary, alignSelf: "center" }}>/</span>
-        <Input variant="green" value={repo} onChange={e => setRepo(e.target.value)} placeholder="repo" />
+        <Input value={repo} onChange={e => setRepo(e.target.value)} placeholder="repo" />
         <Button variant="primary" size="sm" onClick={addRepo}>Add</Button>
       </div>
       {added && (

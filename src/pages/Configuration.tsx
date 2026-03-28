@@ -93,7 +93,7 @@ export default function Configuration() {
         <span style={labelStyle}>GitHub Username</span>
         <div style={{ display: "flex", gap: space['3'], alignItems: "center", marginBottom: space['3'] }}>
           <Input
-            variant="green"
+           
             value={draft.githubUsername}
             onChange={e => setDraft({ ...draft, githubUsername: e.target.value })}
             placeholder="octocat"

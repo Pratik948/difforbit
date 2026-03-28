@@ -1,3 +1,4 @@
+import "./App.css"
 import { applyTheme } from "@/styles/themes"
 import type { ThemeId } from "@/styles/themes"
 
@@ -12,15 +13,14 @@ try {
 import React from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter } from "react-router-dom"
-import { ToastProvider } from "@/components/ui"
+import { Toaster } from "sonner"
 import App from "./App"
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <MemoryRouter>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+      <App />
+      <Toaster richColors position="bottom-right" />
     </MemoryRouter>
   </React.StrictMode>
 )

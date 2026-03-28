@@ -78,8 +78,8 @@ export default function RepoList({ repos, profiles, onChange }: RepoListProps) {
       ))}
       {adding ? (
         <div style={{ display: "flex", gap: space['2'], marginTop: space['3'], flexWrap: "wrap" }}>
-          <Input variant="green" value={newOwner} onChange={e => setNewOwner(e.target.value)} placeholder="owner" style={{ width: "120px" }} />
-          <Input variant="green" value={newRepo} onChange={e => setNewRepo(e.target.value)} placeholder="repo" style={{ width: "140px" }} />
+          <Input value={newOwner} onChange={e => setNewOwner(e.target.value)} placeholder="owner" style={{ width: "120px" }} />
+          <Input value={newRepo} onChange={e => setNewRepo(e.target.value)} placeholder="repo" style={{ width: "140px" }} />
           <select
             value={newProfile}
             onChange={e => setNewProfile(e.target.value)}
