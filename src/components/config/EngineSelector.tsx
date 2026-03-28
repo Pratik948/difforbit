@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { colors, space } from "@/styles/tokens"
 import { Button, Input } from "@/components/ui"
 import type { EngineConfig, EngineType } from "@/types/engine"
-import { hasApiKey, saveApiKey, deleteApiKey } from "@/ipc/engines"
+import { hasApiKey, saveApiKey, deleteApiKey, listClaudeModels } from "@/ipc/engines"
 
 interface EngineSelectorProps {
   engine: EngineConfig
@@ -19,6 +19,9 @@ export default function EngineSelector({ engine, onChange }: EngineSelectorProps
   const [apiKeyStatus, setApiKeyStatus] = useState<"unknown" | "set" | "unset">("unknown")
   const [apiKeyInput, setApiKeyInput] = useState("")
   const [saving, setSaving] = useState(false)
+  const [claudeModels, setClaudeModels] = useState<string[]>([])
+  const [modelsLoading, setModelsLoading] = useState(false)
+  const [modelsError, setModelsError] = useState<string | null>(null)
 
   const service = engine.type === "anthropic" ? "difforbit.anthropic" : "difforbit.openai"
 
@@ -26,6 +29,25 @@ export default function EngineSelector({ engine, onChange }: EngineSelectorProps
     if (engine.type === "claude_code") return
     hasApiKey(service).then(has => setApiKeyStatus(has ? "set" : "unset")).catch(() => setApiKeyStatus("unset"))
   }, [engine.type, service])
+
+  useEffect(() => {
+    if (engine.type !== "claude_code") return
+    fetchClaudeModels()
+  }, [engine.type])
+
+  const fetchClaudeModels = async () => {
+    setModelsLoading(true)
+    setModelsError(null)
+    try {
+      const models = await listClaudeModels()
+      setClaudeModels(models)
+    } catch (e) {
+      setModelsError(String(e))
+      setClaudeModels([])
+    } finally {
+      setModelsLoading(false)
+    }
+  }
 
   const labelStyle: React.CSSProperties = {
     fontFamily: "var(--font-body, monospace)",
@@ -83,12 +105,53 @@ export default function EngineSelector({ engine, onChange }: EngineSelectorProps
             Uses authenticated Claude Code CLI session. Ensure <code>claude</code> is in $PATH.
           </div>
           <div style={{ marginBottom: space['3'] }}>
-            <span style={labelStyle}>Model <span style={{ color: colors.text.tertiary, fontWeight: 400 }}>(optional — leave blank to use CLI default)</span></span>
-            <Input
-              value={engine.model}
-              onChange={e => onChange({ ...engine, model: e.target.value })}
-              placeholder="e.g. claude-opus-4-5-20251001"
-            />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: space['1'] }}>
+              <span style={{ ...labelStyle, marginBottom: 0 }}>
+                Model <span style={{ color: colors.text.tertiary, fontWeight: 400 }}>(optional — leave blank to use CLI default)</span>
+              </span>
+              <button
+                onClick={fetchClaudeModels}
+                disabled={modelsLoading}
+                style={{ fontFamily: "var(--font-body, monospace)", fontSize: "10px", color: colors.text.tertiary, background: "none", border: "none", cursor: modelsLoading ? "default" : "pointer", padding: 0 }}
+              >
+                {modelsLoading ? "loading…" : "↻ refresh"}
+              </button>
+            </div>
+            {modelsError ? (
+              <div style={{ display: "flex", gap: space['2'] }}>
+                <Input
+                  value={engine.model}
+                  onChange={e => onChange({ ...engine, model: e.target.value })}
+                  placeholder="e.g. claude-opus-4-5-20251001"
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontFamily: "var(--font-body, monospace)", fontSize: "10px", color: colors.status.behind, alignSelf: "center" }} title={modelsError}>
+                  could not load models
+                </span>
+              </div>
+            ) : (
+              <select
+                value={engine.model}
+                onChange={e => onChange({ ...engine, model: e.target.value })}
+                disabled={modelsLoading}
+                style={{
+                  width: "100%",
+                  fontFamily: "var(--font-body, monospace)",
+                  fontSize: "12px",
+                  background: "var(--do-bg-surface)",
+                  color: colors.text.primary,
+                  border: `1px solid ${colors.border.default}`,
+                  borderRadius: "4px",
+                  padding: `${space['1']} ${space['2']}`,
+                  outline: "none",
+                }}
+              >
+                <option value="">— use CLI default —</option>
+                {claudeModels.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
       ) : (

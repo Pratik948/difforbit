@@ -11,3 +11,7 @@ export async function hasApiKey(service: string): Promise<boolean> {
 export async function deleteApiKey(service: string): Promise<void> {
   return invoke<void>("delete_api_key", { service })
 }
+
+export async function listClaudeModels(): Promise<string[]> {
+  return invoke<string[]>("list_claude_models")
+}

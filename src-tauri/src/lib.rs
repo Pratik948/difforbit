@@ -88,6 +88,8 @@ pub fn run() {
             commands::github::post_inline_comments,
             commands::github::approve_pr,
             commands::github::request_changes,
+            // engines
+            commands::engines::list_claude_models,
             // keychain
             commands::keychain::save_api_key,
             commands::keychain::has_api_key,
