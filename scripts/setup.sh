@@ -21,12 +21,10 @@ fail() { echo -e "${RED}  ✗${NC} $*"; exit 1; }
 header() { echo -e "\n${CYAN}══════════════════════════════════════════${NC}"; echo -e "${CYAN}  $*${NC}"; echo -e "${CYAN}══════════════════════════════════════════${NC}"; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MATRIXUI_DIR="$(cd "$REPO_ROOT/.." && pwd)/matrix-ui"
 
 header "DiffOrbit — Setup"
-echo "  Repo:     $REPO_ROOT"
-echo "  MatrixUI: $MATRIXUI_DIR"
-echo "  OS:       $(uname -s) $(uname -m)"
+echo "  Repo: $REPO_ROOT"
+echo "  OS:   $(uname -s) $(uname -m)"
 
 # ── 1. System packages (macOS) ───────────────────────────────────────────────
 header "1. System dependencies"
@@ -77,13 +75,8 @@ else
   ok "Rust $(rustc --version) already installed"
 fi
 
-# Ensure cargo is on PATH
 source "$HOME/.cargo/env" 2>/dev/null || true
-
-# Update to latest stable
-info "Updating Rust to stable..."
 rustup update stable --no-self-update
-
 ok "Rust: $(rustc --version)"
 ok "Cargo: $(cargo --version)"
 
@@ -98,19 +91,15 @@ if command -v node &>/dev/null; then
   else
     warn "Node $(node --version) is too old (need v${REQUIRED_NODE_MAJOR}+). Please upgrade."
     if command -v fnm &>/dev/null; then
-      info "Using fnm to install Node $REQUIRED_NODE_MAJOR..."
       fnm install $REQUIRED_NODE_MAJOR && fnm use $REQUIRED_NODE_MAJOR
     elif [[ "$(uname)" == "Darwin" ]]; then
-      info "brew install node@$REQUIRED_NODE_MAJOR"
       brew install "node@$REQUIRED_NODE_MAJOR"
     fi
   fi
 else
   if [[ "$(uname)" == "Darwin" ]]; then
-    info "brew install node"
     brew install node
   else
-    info "Installing Node.js $REQUIRED_NODE_MAJOR via NodeSource..."
     curl -fsSL "https://deb.nodesource.com/setup_${REQUIRED_NODE_MAJOR}.x" | sudo -E bash -
     sudo apt-get install -y nodejs
   fi
@@ -119,25 +108,13 @@ fi
 ok "Node: $(node --version)"
 ok "npm:  $(npm --version)"
 
-# ── 4. pnpm ──────────────────────────────────────────────────────────────────
-header "4. pnpm (required for MatrixUI monorepo)"
-
-if ! command -v pnpm &>/dev/null; then
-  info "Installing pnpm..."
-  npm install -g pnpm
-else
-  ok "pnpm $(pnpm --version) already installed"
-fi
-
-# ── 5. GitHub CLI ────────────────────────────────────────────────────────────
-header "5. GitHub CLI (gh)"
+# ── 4. GitHub CLI ────────────────────────────────────────────────────────────
+header "4. GitHub CLI (gh)"
 
 if ! command -v gh &>/dev/null; then
   if [[ "$(uname)" == "Darwin" ]]; then
-    info "brew install gh"
     brew install gh
   else
-    info "Installing gh on Linux..."
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list
     sudo apt-get update -qq && sudo apt-get install -y gh
@@ -152,8 +129,8 @@ else
   warn "gh not authenticated — run: gh auth login"
 fi
 
-# ── 6. Claude Code CLI (optional) ────────────────────────────────────────────
-header "6. Claude Code CLI (optional — needed for claude_code engine)"
+# ── 5. Claude Code CLI (optional) ────────────────────────────────────────────
+header "5. Claude Code CLI (optional — needed for claude_code engine)"
 
 if ! command -v claude &>/dev/null; then
   info "Installing @anthropic-ai/claude-code..."
@@ -162,37 +139,16 @@ else
   ok "claude already installed"
 fi
 
-# ── 7. Clone and build MatrixUI ──────────────────────────────────────────────
-header "7. MatrixUI peer dependency"
-
-if [[ -d "$MATRIXUI_DIR" ]]; then
-  ok "MatrixUI repo already exists at $MATRIXUI_DIR"
-  info "Pulling latest..."
-  git -C "$MATRIXUI_DIR" pull --ff-only 2>/dev/null || warn "Could not pull (local changes?)"
-else
-  info "Cloning MatrixUI to $MATRIXUI_DIR..."
-  git clone https://github.com/Pratik948/matrix-ui.git "$MATRIXUI_DIR"
-fi
-
-info "Installing MatrixUI dependencies..."
-(cd "$MATRIXUI_DIR" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install)
-
-info "Building MatrixUI packages..."
-(cd "$MATRIXUI_DIR" && pnpm build)
-
-ok "MatrixUI built — @matrixui/tokens and @matrixui/react ready"
-
-# ── 8. Frontend npm install ───────────────────────────────────────────────────
-header "8. DiffOrbit frontend dependencies"
+# ── 6. Frontend npm install ───────────────────────────────────────────────────
+header "6. DiffOrbit frontend dependencies"
 
 cd "$REPO_ROOT"
 info "npm install..."
 npm install
-
 ok "node_modules ready"
 
-# ── 9. Rust crates (pre-fetch) ────────────────────────────────────────────────
-header "9. Pre-fetch Rust crates"
+# ── 7. Rust crates (pre-fetch) ────────────────────────────────────────────────
+header "7. Pre-fetch Rust crates"
 
 cd "$REPO_ROOT/src-tauri"
 info "cargo fetch..."
@@ -206,7 +162,7 @@ echo "  Next steps:"
 echo "    npm run dev          # start Vite dev server only"
 echo "    npm run tauri:dev    # start full Tauri app (hot-reload)"
 echo "    npm run check        # typecheck + cargo check"
-echo "    npm run build:app    # production build"
+echo "    npm run tauri:build  # production build"
 echo ""
 if ! gh auth status &>/dev/null 2>&1; then
   echo -e "  ${YELLOW}⚠  Run 'gh auth login' to authenticate with GitHub${NC}"
