@@ -218,7 +218,7 @@ flowchart TD
     J -->|anthropic| K[POST /v1/messages\nAnthropic API]
     J -->|openai_compatible| L[POST /chat/completions\nOpenAI-compat endpoint]
     J -->|claude_code| M[claude -p prompt\nCLI subprocess]
-    K & L & M --> N[extract_json: find first { ... }]
+    K & L & M --> N["extract_json: find first brace, parse to PRReview"]
     N --> O[Parse RawReview → PRReview]
     O --> P[parse_diff → diffMap\nfile→line→position]
     P --> Q[extract_hunk_for_line\nper issue with file+line]
