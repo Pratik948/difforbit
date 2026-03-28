@@ -39,7 +39,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
     ok "Homebrew already installed"
   fi
 
-  BREW_PKGS=(pkg-config openssl@3 libssl-dev cmake)
+  BREW_PKGS=(pkg-config openssl@3 cmake)
   for pkg in "${BREW_PKGS[@]}"; do
     if brew list "$pkg" &>/dev/null 2>&1; then
       ok "$pkg already installed"
@@ -71,7 +71,7 @@ header "2. Rust toolchain"
 
 if ! command -v rustc &>/dev/null; then
   info "Installing Rust via rustup..."
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   source "$HOME/.cargo/env"
 else
   ok "Rust $(rustc --version) already installed"

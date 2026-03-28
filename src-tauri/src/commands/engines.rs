@@ -172,13 +172,39 @@ async fn call_openai_compat(
         .ok_or_else(|| format!("unexpected OpenAI response: {json}"))
 }
 
+fn claude_bin() -> String {
+    for candidate in &[
+        "/opt/homebrew/bin/claude",
+        "/usr/local/bin/claude",
+        "/usr/bin/claude",
+    ] {
+        if std::path::Path::new(candidate).exists() {
+            return candidate.to_string();
+        }
+    }
+    // npm global installs land in ~/.npm-global/bin or $(npm prefix -g)/bin
+    if let Ok(home) = std::env::var("HOME") {
+        let npm_global = format!("{home}/.npm-global/bin/claude");
+        if std::path::Path::new(&npm_global).exists() {
+            return npm_global;
+        }
+        // nvm / volta style
+        let local_bin = format!("{home}/.local/bin/claude");
+        if std::path::Path::new(&local_bin).exists() {
+            return local_bin;
+        }
+    }
+    "claude".to_string()
+}
+
 async fn call_claude_code(
     app: &tauri::AppHandle,
     prompt: &str,
 ) -> Result<String, String> {
     let shell = app.shell();
+    let claude = claude_bin();
     let output = shell
-        .command("claude")
+        .command(&claude)
         .args(["-p", prompt])
         .output()
         .await
