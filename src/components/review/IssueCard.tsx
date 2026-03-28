@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
+import { colors, space, textGlow } from "@/styles/tokens"
 import type { ReviewIssue } from "@/types/review"
 import DiffViewer from "./DiffViewer"
 import CommentToggle from "./CommentToggle"

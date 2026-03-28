@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { Modal, Button, Input, Switch } from "@matrixui/react"
-import { colors, space, textGlow } from "@matrixui/tokens"
+import { Modal, Button, Input, Switch } from "@/components/ui"
+import { colors, space, textGlow } from "@/styles/tokens"
 import { checkGhAuth } from "@/ipc/github"
 import { hasApiKey, saveApiKey } from "@/ipc/engines"
 import { useConfigStore } from "@/store/configStore"

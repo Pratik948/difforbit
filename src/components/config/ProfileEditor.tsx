@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Button, Input, Textarea } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Button, Input, Textarea } from "@/components/ui"
 import type { ReviewProfile } from "@/types/config"
 
 interface ProfileEditorProps {
@@ -36,13 +36,13 @@ export default function ProfileEditor({ profile, onSave, onDelete, onReset }: Pr
 
       <div style={fieldStyle}>
         <span style={labelStyle}>Name</span>
-        <Input variant="green" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Profile name" {...(draft.isBuiltIn ? { disabled: true } as Record<string, boolean> : {})} />
+        <Input  value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Profile name" {...(draft.isBuiltIn ? { disabled: true } as Record<string, boolean> : {})} />
       </div>
 
       <div style={fieldStyle}>
         <span style={labelStyle}>Languages (comma-separated)</span>
         <Input
-          variant="green"
+          
           value={draft.languages.join(", ")}
           onChange={e => setDraft(d => ({ ...d, languages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) }))}
           placeholder="typescript, javascript"
@@ -53,7 +53,7 @@ export default function ProfileEditor({ profile, onSave, onDelete, onReset }: Pr
       <div style={fieldStyle}>
         <span style={labelStyle}>Extensions (comma-separated)</span>
         <Input
-          variant="green"
+          
           value={draft.extensions.join(", ")}
           onChange={e => setDraft(d => ({ ...d, extensions: e.target.value.split(",").map(s => s.trim()).filter(Boolean) }))}
           placeholder=".ts, .tsx"
@@ -64,7 +64,7 @@ export default function ProfileEditor({ profile, onSave, onDelete, onReset }: Pr
       <div style={fieldStyle}>
         <span style={labelStyle}>System Prompt</span>
         <Textarea
-          variant="green"
+          
           rows={10}
           value={draft.systemPrompt}
           onChange={e => setDraft(d => ({ ...d, systemPrompt: e.target.value }))}

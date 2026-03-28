@@ -1,7 +1,7 @@
 import React from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel } from "@/components/ui"
 
 interface NavItem {
   path: string

@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react"
-import { Input } from "@matrixui/react"
-import { colors, space } from "@matrixui/tokens"
+import { Input } from "@/components/ui"
+import { colors, space } from "@/styles/tokens"
 
 interface Props {
   value: string

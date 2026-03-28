@@ -1,5 +1,5 @@
-import { Modal } from "@matrixui/react"
-import { colors, space } from "@matrixui/tokens"
+import { Modal } from "@/components/ui"
+import { colors, space } from "@/styles/tokens"
 
 const SHORTCUTS = [
   { key: "j / k", action: "Navigate between PRCards", section: "Navigation" },

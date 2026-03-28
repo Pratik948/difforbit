@@ -1,6 +1,6 @@
 import React, { useState } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel, Button, Modal, useToast } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel, Button, Modal, useToast } from "@/components/ui"
 import type { PRReview } from "@/types/review"
 import VerdictBadge from "./VerdictBadge"
 import IssueCard from "./IssueCard"
