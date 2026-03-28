@@ -387,7 +387,7 @@ export function OnboardingWizard({ onClose }: { onClose: () => void }) {
             style={{
               width: "8px", height: "8px",
               borderRadius: "50%",
-              background: i === step ? colors.border.active : i < step ? `${colors.border.active}66` : colors.border.default,
+              background: i === step ? colors.border.active : colors.border.default,
               cursor: i < step ? "pointer" : "default",
               transition: "background 0.2s",
             }}
@@ -396,7 +396,7 @@ export function OnboardingWizard({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Step content */}
-      <div style={{ minHeight: "280px" }}>
+      <div style={{ minHeight: "280px", maxHeight: "380px", overflowY: "auto" }}>
         {stepComponents[step]}
       </div>
 
