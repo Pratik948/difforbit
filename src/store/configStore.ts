@@ -11,7 +11,7 @@ const DEFAULT_CONFIG: AppConfig = {
   showDiff: true,
   diffContext: 5,
   onboardingComplete: false,
-  theme: "matrix" as const,
+  theme: "shadcn-light" as const,
 }
 
 interface ConfigStore {

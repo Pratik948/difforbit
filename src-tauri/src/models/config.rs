@@ -58,7 +58,7 @@ pub struct AppConfig {
     pub theme: String,
 }
 
-fn default_theme() -> String { "matrix".to_string() }
+fn default_theme() -> String { "shadcn-light".to_string() }
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -83,7 +83,7 @@ impl Default for AppConfig {
             show_diff: true,
             diff_context: 5,
             onboarding_complete: false,
-            theme: "matrix".to_string(),
+            theme: "shadcn-light".to_string(),
         }
     }
 }
