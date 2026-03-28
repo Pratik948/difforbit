@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tokio::sync::Semaphore;
+use tracing::{error, info};
 
 fn notify(app: &tauri::AppHandle, title: &str, body: &str) {
     let _ = app.notification()
@@ -77,7 +78,15 @@ pub async fn trigger_review_changed_files(app: tauri::AppHandle) -> Result<(), S
 pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_files_only: bool) -> Result<(), String> {
     use crate::diff::extractor::filter_diff_to_files;
 
+    info!(force, changed_files_only, "review session started");
+
     let config = get_config(app.clone())?;
+    info!(
+        repos = config.repos.len(),
+        engine = %config.engine.r#type,
+        model = %config.engine.model,
+        "config loaded"
+    );
 
     if config.repos.is_empty() {
         let _ = app.emit("review:completed", serde_json::json!({
@@ -95,23 +104,28 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
     let mut prs_to_review = Vec::new();
     for repo_cfg in config.repos.iter().filter(|r| r.enabled) {
         let repo = format!("{}/{}", repo_cfg.owner, repo_cfg.repo);
+        info!(repo = %repo, "listing pending PRs");
         match crate::commands::github::list_pending_prs(app.clone(), vec![repo_cfg.clone()]).await {
             Ok(prs) => {
+                info!(repo = %repo, found = prs.len(), "PR list fetched");
                 for pr in prs {
                     if !force {
                         if let Some(repo_seen) = seen.get(&repo) {
                             if let Some(entry) = repo_seen.get(&pr.number.to_string()) {
                                 if entry.head_sha == pr.head_sha {
-                                    continue; // already reviewed, no new commits
+                                    info!(pr = pr.number, "skipping — already reviewed at this SHA");
+                                    continue;
                                 }
                             }
                         }
                     }
+                    info!(pr = pr.number, title = %pr.title, "queued for review");
                     prs_to_review.push((pr, repo_cfg.profile_id.clone()));
                 }
             }
             Err(e) => {
                 let msg = format!("Failed to fetch PRs for {repo}: {e}");
+                error!(repo = %repo, err = %e, "list_pending_prs failed");
                 fetch_errors.push(msg.clone());
                 let _ = app.emit("review:error", serde_json::json!({ "message": msg }));
             }
@@ -119,6 +133,7 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
     }
 
     let total = prs_to_review.len();
+    info!(total, "starting review run");
     let _ = app.emit("review:started", serde_json::json!({ "total_prs": total }));
 
     if total == 0 {
@@ -151,9 +166,14 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
 
             // Fetch full diff
             let mut pr = pr;
+            info!(pr = pr.number, repo = %pr.repo, "fetching diff");
             match fetch_pr_diff(app2.clone(), pr.repo.clone(), pr.number).await {
-                Ok(diff) => pr.diff = diff,
+                Ok(diff) => {
+                    info!(pr = pr.number, diff_bytes = diff.len(), "diff fetched");
+                    pr.diff = diff;
+                }
                 Err(e) => {
+                    error!(pr = pr.number, err = %e, "fetch_pr_diff failed");
                     let _ = app2.emit("review:error", serde_json::json!({ "message": e }));
                     notify(&app2, "DiffOrbit — Review error", &e);
                     return None;
@@ -184,8 +204,21 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
                 .cloned()
                 .unwrap_or_else(|| crate::commands::config::built_in_profiles()[0].clone());
 
+            info!(
+                pr = pr.number,
+                engine = %config2.engine.r#type,
+                model = %config2.engine.model,
+                profile = %profile.name,
+                "calling AI engine"
+            );
             match run_engine(&app2, &pr, &profile, &config2.engine).await {
                 Ok(review) => {
+                    info!(
+                        pr = pr.number,
+                        verdict = %review.verdict,
+                        issues = review.issues.len(),
+                        "engine returned review"
+                    );
                     let _ = app2.emit("review:pr_done", serde_json::json!({
                         "pr_number": review.pr.number,
                         "verdict": review.verdict,
@@ -194,6 +227,7 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
                     Some((pr.repo.clone(), pr.number.to_string(), pr.updated_at.clone(), pr.head_sha.clone(), pr.files.clone(), review))
                 }
                 Err(e) => {
+                    error!(pr = pr.number, err = %e, "run_engine failed");
                     let _ = app2.emit("review:error", serde_json::json!({ "message": e }));
                     notify(&app2, "DiffOrbit — Review error", &e);
                     None

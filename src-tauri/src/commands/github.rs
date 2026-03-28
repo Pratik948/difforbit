@@ -1,6 +1,7 @@
 use crate::models::{config::RepoConfig, pr::PullRequest};
 use serde::Deserialize;
 use tauri_plugin_shell::ShellExt;
+use tracing::{debug, error, info};
 
 /// Resolve the `gh` binary path. Tauri's shell does not inherit the user's PATH,
 /// so we probe known Homebrew / system locations before falling back to bare "gh".
@@ -46,6 +47,7 @@ struct GhFile {
 pub async fn check_gh_auth(app: tauri::AppHandle) -> Result<String, String> {
     let shell = app.shell();
     let gh = gh_bin();
+    info!(gh = %gh, "checking gh auth");
     let output = shell
         .command(&gh)
         .args(["auth", "status"])
@@ -79,6 +81,7 @@ pub async fn list_pending_prs(
 
     for repo_cfg in repos.iter().filter(|r| r.enabled) {
         let repo = format!("{}/{}", repo_cfg.owner, repo_cfg.repo);
+        info!(repo = %repo, "running gh pr list");
         let output = shell
             .command(&gh)
             .args([
@@ -94,11 +97,14 @@ pub async fn list_pending_prs(
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            error!(repo = %repo, stderr = %stderr, "gh pr list failed");
             return Err(format!("gh pr list failed for {repo}: {stderr}"));
         }
 
         let raw = String::from_utf8_lossy(&output.stdout);
+        debug!(repo = %repo, raw = %raw, "gh pr list raw output");
         let items: Vec<GhPrItem> = serde_json::from_str(&raw).unwrap_or_default();
+        info!(repo = %repo, count = items.len(), "parsed PR list");
 
         for item in items {
             all_prs.push(PullRequest {
@@ -126,6 +132,7 @@ pub async fn fetch_pr_diff(
 ) -> Result<String, String> {
     let shell = app.shell();
     let gh = gh_bin();
+    info!(pr = number, repo = %repo, "running gh pr diff");
     let output = shell
         .command(&gh)
         .args(["pr", "diff", &number.to_string(), "--repo", &repo])
@@ -134,9 +141,13 @@ pub async fn fetch_pr_diff(
         .map_err(|e| e.to_string())?;
 
     if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        let diff = String::from_utf8_lossy(&output.stdout).to_string();
+        info!(pr = number, bytes = diff.len(), "diff fetched successfully");
+        Ok(diff)
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).to_string())
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        error!(pr = number, repo = %repo, stderr = %stderr, "gh pr diff failed");
+        Err(stderr)
     }
 }
 
