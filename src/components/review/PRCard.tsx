@@ -1,11 +1,13 @@
 import React, { useState } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel, Button, Modal, useToast } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel, Button, Modal, useToast } from "@/components/ui"
 import type { PRReview } from "@/types/review"
 import VerdictBadge from "./VerdictBadge"
 import IssueCard from "./IssueCard"
 import { postInlineComments, approvePr, requestChanges } from "@/ipc/github"
 import type { CommentData } from "@/ipc/github"
+import { triggerReviewChangedFiles } from "@/ipc/review"
+import { prReviewToMarkdown, saveMarkdown, printAsPdf } from "@/utils/exportReview"
 
 interface PRCardProps {
   review: PRReview
@@ -35,19 +37,10 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
         .filter(iss => iss.selected && iss.file && iss.line)
         .map(iss => {
           const position = review.diffMap[iss.file!]?.[iss.line!] ?? 1
-          return {
-            path: iss.file!,
-            position,
-            body: iss.suggestedComment,
-          }
+          return { path: iss.file!, position, body: iss.suggestedComment }
         })
 
-      const result = await postInlineComments(
-        review.pr.repo,
-        review.pr.number,
-        comments,
-        review.commitSha,
-      )
+      const result = await postInlineComments(review.pr.repo, review.pr.number, comments, review.commitSha)
       addToast({ variant: "success", message: `Posted ${result.posted} comment(s).` })
       if (result.failed > 0) addToast({ variant: "error", message: `${result.failed} failed.` })
       setActioned(true)
@@ -84,31 +77,43 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
 
   const selectedCount = review.issues.filter(i => i.selected).length
 
+  const handleExportMd = async () => {
+    const md = prReviewToMarkdown(review)
+    const filename = `difforbit-pr-${review.pr.number}-${review.pr.repo.replace("/", "-")}.md`
+    try {
+      await saveMarkdown(filename, md)
+      addToast({ variant: "success", message: `Saved ${filename} to Downloads` })
+    } catch (e) {
+      addToast({ variant: "error", message: String(e) })
+    }
+  }
+
   const titleStyle: React.CSSProperties = {
-    fontFamily: "var(--font-display, 'Share Tech Mono', monospace)",
+    fontFamily: "var(--font-display, 'Inter', system-ui, sans-serif)",
     fontSize: "14px",
+    fontWeight: "500",
     color: colors.text.primary,
     textShadow: textGlow.greenSoft,
   }
 
   const metaStyle: React.CSSProperties = {
-    fontFamily: "var(--font-body, monospace)",
-    fontSize: "11px",
+    fontFamily: "var(--font-body, system-ui, sans-serif)",
+    fontSize: "12px",
     color: colors.text.tertiary,
   }
 
   return (
-    <Panel rain={{ preset: "diff" }} style={{ marginBottom: space['4'], padding: space['4'] }}>
+    <Panel style={{ marginBottom: space["4"], padding: space["4"] }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: space['3'] }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: space["3"] }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: space['3'], marginBottom: space['1'] }}>
+          <div style={{ display: "flex", alignItems: "center", gap: space["3"], marginBottom: space["1"] }}>
             <span style={{ ...metaStyle, color: colors.text.ghost }}>#{review.pr.number}</span>
             <span style={titleStyle}>{review.pr.title}</span>
           </div>
-          <div style={{ display: "flex", gap: space['3'], alignItems: "center" }}>
+          <div style={{ display: "flex", gap: space["3"], alignItems: "center" }}>
             <span style={metaStyle}>{review.pr.repo}</span>
-            <span style={metaStyle}>@{review.pr.author}</span>
+            <span style={metaStyle}>{review.pr.author}</span>
             <VerdictBadge verdict={review.verdict as "APPROVE" | "REQUEST_CHANGES" | "NEEDS_DISCUSSION"} />
           </div>
         </div>
@@ -116,30 +121,30 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           href={review.pr.url}
           target="_blank"
           rel="noreferrer"
-          style={{ fontFamily: "var(--font-body, monospace)", fontSize: "10px", color: colors.status.ahead, textDecoration: "none" }}
+          style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "12px", color: colors.status.ahead, textDecoration: "none" }}
         >
-          ↗ GitHub
+          Open on GitHub
         </a>
       </div>
 
       {/* Summary */}
-      <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "12px", color: colors.text.secondary, marginBottom: space['3'], lineHeight: "1.6" }}>
+      <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.secondary, marginBottom: space["3"], lineHeight: "1.6" }}>
         {review.summary}
       </div>
 
       {/* Positive notes */}
       {review.positiveNotes.length > 0 && (
-        <div style={{ marginBottom: space['3'] }}>
+        <div style={{ marginBottom: space["3"] }}>
           <button
             onClick={() => setPositiveOpen(v => !v)}
-            style={{ fontFamily: "var(--font-body, monospace)", fontSize: "11px", color: colors.status.synced, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "12px", color: colors.status.synced, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
           >
-            {positiveOpen ? "▼" : "▶"} {review.positiveNotes.length} positive note(s)
+            {positiveOpen ? "Hide" : "Show"} {review.positiveNotes.length} positive note{review.positiveNotes.length !== 1 ? "s" : ""}
           </button>
           {positiveOpen && (
-            <ul style={{ marginTop: space['2'], paddingLeft: space['4'], listStyle: "disc" }}>
+            <ul style={{ marginTop: space["2"], paddingLeft: space["4"], listStyle: "disc" }}>
               {review.positiveNotes.map((note, i) => (
-                <li key={i} style={{ fontFamily: "var(--font-body, monospace)", fontSize: "11px", color: colors.status.synced, marginBottom: space['1'] }}>{note}</li>
+                <li key={i} style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.status.synced, marginBottom: space["1"] }}>{note}</li>
               ))}
             </ul>
           )}
@@ -148,23 +153,18 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
 
       {/* Issues */}
       {review.issues.length > 0 && (
-        <div style={{ marginBottom: space['3'] }}>
-          <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "11px", color: colors.text.tertiary, marginBottom: space['2'] }}>
-            {review.issues.length} issue(s) — {selectedCount} selected for posting
+        <div style={{ marginBottom: space["3"] }}>
+          <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "12px", color: colors.text.tertiary, marginBottom: space["2"] }}>
+            {review.issues.length} issue{review.issues.length !== 1 ? "s" : ""} &mdash; {selectedCount} selected for posting
           </div>
           {review.issues.map((issue, i) => (
-            <IssueCard
-              key={i}
-              issue={issue}
-              index={i}
-              onToggleSelected={toggleIssueSelected}
-            />
+            <IssueCard key={i} issue={issue} index={i} onToggleSelected={toggleIssueSelected} />
           ))}
         </div>
       )}
 
       {/* Action bar */}
-      <div style={{ display: "flex", gap: space['2'], borderTop: `1px solid ${colors.border.default}`, paddingTop: space['3'] }}>
+      <div style={{ display: "flex", gap: space["2"], borderTop: `1px solid ${colors.border.default}`, paddingTop: space["3"], flexWrap: "wrap" as const }}>
         <Button
           variant="primary"
           size="sm"
@@ -172,7 +172,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           loading={posting}
           {...(actioned || selectedCount === 0 ? { disabled: true } as Record<string, boolean> : {})}
         >
-          Post {selectedCount} Comment{selectedCount !== 1 ? "s" : ""}
+          Post {selectedCount} comment{selectedCount !== 1 ? "s" : ""}
         </Button>
         <Button
           variant="ghost"
@@ -189,8 +189,15 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           onClick={() => setRequestModalOpen(true)}
           {...(actioned ? { disabled: true } as Record<string, boolean> : {})}
         >
-          Request Changes
+          Request changes
         </Button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: space["2"] }}>
+          <Button variant="ghost" size="sm" onClick={() => triggerReviewChangedFiles().catch(() => {})}>
+            Re-review
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleExportMd}>Export MD</Button>
+          <Button variant="ghost" size="sm" onClick={printAsPdf}>Export PDF</Button>
+        </div>
       </div>
 
       {/* Request changes modal */}
@@ -202,18 +209,19 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           rows={5}
           style={{
             width: "100%",
-            fontFamily: "var(--font-body, monospace)",
-            fontSize: "12px",
+            fontFamily: "var(--font-body, system-ui, sans-serif)",
+            fontSize: "13px",
             backgroundColor: colors.bg.surface,
             color: colors.text.secondary,
             border: `1px solid ${colors.border.default}`,
-            padding: space['2'],
+            borderRadius: "4px",
+            padding: space["2"],
             resize: "vertical",
             boxSizing: "border-box",
-            marginBottom: space['3'],
+            marginBottom: space["3"],
           }}
         />
-        <div style={{ display: "flex", gap: space['2'] }}>
+        <div style={{ display: "flex", gap: space["2"] }}>
           <Button variant="danger" onClick={handleRequestChanges}>Submit</Button>
           <Button variant="ghost" onClick={() => setRequestModalOpen(false)}>Cancel</Button>
         </div>

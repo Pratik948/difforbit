@@ -1,4 +1,6 @@
 import type { EngineConfig } from "./engine"
+import type { ThemeId } from "@/styles/themes"
+export type { ThemeId }
 
 export interface ReviewProfile {
   id: string
@@ -31,4 +33,6 @@ export interface AppConfig {
   profiles: ReviewProfile[]
   showDiff: boolean
   diffContext: number
+  onboardingComplete: boolean
+  theme: ThemeId
 }

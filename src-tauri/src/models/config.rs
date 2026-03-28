@@ -52,7 +52,13 @@ pub struct AppConfig {
     pub profiles: Vec<ReviewProfile>,
     pub show_diff: bool,
     pub diff_context: u32,
+    #[serde(default)]
+    pub onboarding_complete: bool,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
+
+fn default_theme() -> String { "shadcn-light".to_string() }
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -76,6 +82,8 @@ impl Default for AppConfig {
             profiles: crate::commands::config::built_in_profiles(),
             show_diff: true,
             diff_context: 5,
+            onboarding_complete: false,
+            theme: "shadcn-light".to_string(),
         }
     }
 }

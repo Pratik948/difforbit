@@ -579,6 +579,8 @@ const DEFAULT_CONFIG: AppConfig = {
   profiles: BUILT_IN_PROFILES,
   showDiff: true,
   diffContext: 5,
+  onboardingComplete: false,
+  theme: "shadcn-light" as const,
 }
 
 interface ConfigStore {

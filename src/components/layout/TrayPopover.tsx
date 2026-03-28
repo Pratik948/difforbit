@@ -1,6 +1,6 @@
 import React from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel, Button } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel, Button } from "@/components/ui"
 import { triggerRunNow } from "@/ipc/review"
 import { useReviewStore } from "@/store/reviewStore"
 import { useScheduler } from "@/hooks/useScheduler"

@@ -1,7 +1,7 @@
 # DiffOrbit — CLAUDE.md
 
 > **AI-powered PR code review desktop app for macOS**
-> Tauri + Rust backend · React + TypeScript frontend · MatrixUI design system
+> Tauri + Rust backend · React + TypeScript frontend · shadcn/ui + Tailwind CSS
 
 ---
 
@@ -30,49 +30,19 @@ DiffOrbit is a macOS menu-bar + full-window desktop app that:
 
 ---
 
-## MatrixUI Design System
+## Design System
 
-Clone from: `https://github.com/Pratik948/matrix-ui.git`
-Available at local directory: `/Users/pratikjamariya/Work/matrix-ui`
-Note: Do read the README.md
+DiffOrbit uses **shadcn/ui** components with a custom `--do-*` CSS variable token layer defined in `src/styles/themes.ts`. Three built-in themes are available: `matrix` (dark green terminal), `shadcn-dark`, and `shadcn-light`. The active theme is persisted to `localStorage` under the key `difforbit-theme`.
 
-### Core Palette (CSS custom properties to wire up)
+### Token Layer (`src/styles/tokens.ts`)
 
-| Token | Value | Usage |
-|---|---|---|
-| `--color-green-100` | `#00ff41` | Primary actions, rain glyph head |
-| `--color-green-200` | `#00cc44` | Body text |
-| `--color-green-300` | `#00aa33` | Secondary text |
-| `--color-green-400` | `#006600` | Muted / disabled |
-| `--color-green-900` | `#000a00` | Panel / surface backgrounds |
-| `--color-base` | `#000000` | Window root background |
-| `--color-cyan-300` | `#00cccc` | Commit / config panel accents |
-| `--color-amber-300` | `#ffcc00` | Warnings, modified lines |
-| `--color-red-300` | `#ff4444` | Deleted lines, errors, danger |
+All components import from `@/styles/tokens` which returns `var(--do-*)` references. Switching themes calls `applyTheme(id)` which sets all `--do-*` properties on `:root`.
 
-### Typography
+Key tokens: `--do-bg-base`, `--do-bg-surface`, `--do-bg-elevated`, `--do-text-primary/secondary/tertiary`, `--do-border`, `--do-accent`, `--do-danger`, `--do-warning`, `--do-success`, `--do-diff-added-bg`, `--do-diff-removed-bg`
 
-```css
---font-display: 'Share Tech Mono', 'Courier New', monospace;   /* headers */
---font-body:    'Courier New', 'Lucida Console', monospace;     /* UI text */
---font-code:    'JetBrains Mono', 'Fira Code', monospace;       /* code/diff */
-```
+### shadcn CSS var bridge (`src/App.css`)
 
-### MatrixRain — per-panel presets
-
-| Panel | Speed (ms) | Opacity | Head colour |
-|---|---|---|---|
-| Sidebar | 65 | 0.38 | `#66ff88` |
-| Header | 22 | 0.22 | `#ccffdd` |
-| Diff view | 42 | 0.30 | `#ffffff` |
-| Config panel | 30 | 0.35 | `#aaffff` |
-| Modal overlay | 35 | 0.40 | `#ffffff` |
-
-### Design Rules
-- **Everything monospace** — every number, hash, path in fixed-width font
-- **Rain is structural** — every panel has a canvas rain layer (behind content, pointer-events: none)
-- **Information density** — terminal-dense, never padded like SaaS
-- **Dark only** — no light mode, ever
+Standard shadcn vars (`--background`, `--foreground`, `--border`, etc.) are mapped to `var(--do-*)` tokens so shadcn components automatically pick up theme changes.
 
 ---
 
@@ -114,8 +84,8 @@ difforbit/
     ├── main.tsx
     ├── App.tsx
     ├── styles/
-    │   ├── globals.css               ← CSS custom properties (MatrixUI tokens)
-    │   └── matrix-rain.css
+    │   ├── themes.ts                 ← --do-* CSS variable definitions for all 3 themes
+    │   └── tokens.ts                 ← CSS var reference exports (drop-in for components)
     ├── pages/
     │   ├── Dashboard.tsx
     │   ├── Reports.tsx

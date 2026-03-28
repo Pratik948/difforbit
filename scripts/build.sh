@@ -17,6 +17,10 @@
 
 set -euo pipefail
 
+# Ensure Rust/Cargo is on PATH (rustup installs to ~/.cargo/bin)
+[[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+export PATH="$HOME/.cargo/bin:$PATH"
+
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
 ok()     { echo -e "${GREEN}  ✓${NC} $*"; }
 info()   { echo -e "${CYAN}  →${NC} $*"; }
@@ -25,7 +29,6 @@ fail()   { echo -e "${RED}  ✗${NC} $*"; exit 1; }
 header() { echo -e "\n${CYAN}══════════════════════════════════════════${NC}"; echo -e "${CYAN}  $*${NC}"; echo -e "${CYAN}══════════════════════════════════════════${NC}"; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MATRIXUI_DIR="$(cd "$REPO_ROOT/.." && pwd)/matrix-ui"
 DEBUG_FLAG=""
 SIGN=true
 
@@ -56,16 +59,6 @@ NODE_MAJOR=$(node --version | sed 's/v\([0-9]*\).*/\1/')
 
 ok "Rust $(rustc --version)"
 ok "Node $(node --version)"
-
-# ── MatrixUI ──────────────────────────────────────────────────────────────────
-header "MatrixUI"
-
-if [[ ! -f "$MATRIXUI_DIR/packages/tokens/dist/index.js" ]]; then
-  info "MatrixUI not built — building now..."
-  [[ -d "$MATRIXUI_DIR" ]] || fail "MatrixUI not found at $MATRIXUI_DIR — run scripts/setup.sh"
-  (cd "$MATRIXUI_DIR" && pnpm install && pnpm build)
-fi
-ok "MatrixUI packages ready"
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 header "Frontend"

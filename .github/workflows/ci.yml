@@ -28,14 +28,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
-      - name: Clone and build MatrixUI
-        run: |
-          git clone https://github.com/Pratik948/matrix-ui.git ../matrix-ui
-          cd ../matrix-ui
-          npm install -g pnpm
-          pnpm install --frozen-lockfile 2>/dev/null || pnpm install
-          pnpm build
-
       - name: Install frontend deps
         run: npm ci
 
@@ -54,14 +46,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-
-      - name: Clone and build MatrixUI
-        run: |
-          git clone https://github.com/Pratik948/matrix-ui.git ../matrix-ui
-          cd ../matrix-ui
-          npm install -g pnpm
-          pnpm install --frozen-lockfile 2>/dev/null || pnpm install
-          pnpm build
 
       - name: Install frontend deps
         run: npm ci
@@ -135,14 +119,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-
-      - name: Clone and build MatrixUI
-        run: |
-          git clone https://github.com/Pratik948/matrix-ui.git ../matrix-ui
-          cd ../matrix-ui
-          npm install -g pnpm
-          pnpm install --frozen-lockfile 2>/dev/null || pnpm install
-          pnpm build
 
       - name: Install frontend deps
         run: npm ci

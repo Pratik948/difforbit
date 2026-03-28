@@ -1,5 +1,5 @@
 import React from "react"
-import { colors, space } from "@matrixui/tokens"
+import { colors, space } from "@/styles/tokens"
 
 interface CommentToggleProps {
   checked: boolean

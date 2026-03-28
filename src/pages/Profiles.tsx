@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { colors, space, textGlow } from "@matrixui/tokens"
-import { Panel, Button, useToast } from "@matrixui/react"
+import { colors, space, textGlow } from "@/styles/tokens"
+import { Panel, Button, useToast } from "@/components/ui"
 import { useConfigStore } from "@/store/configStore"
 import ProfileEditor from "@/components/config/ProfileEditor"
 import type { ReviewProfile } from "@/types/config"
@@ -110,24 +110,25 @@ export default function Profiles() {
   }
 
   const headerStyle: React.CSSProperties = {
-    fontFamily: "var(--font-display, 'Share Tech Mono', monospace)",
-    fontSize: "20px",
+    fontFamily: "var(--font-display, 'Inter', system-ui, sans-serif)",
+    fontSize: "22px",
+    fontWeight: "600",
     color: colors.text.primary,
     textShadow: textGlow.greenPrimary,
-    marginBottom: space['6'],
-    letterSpacing: "0.05em",
+    marginBottom: space["6"],
+    letterSpacing: "-0.01em",
   }
 
   return (
-    <div style={{ padding: space['6'], height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={headerStyle}>// PROFILES</div>
-      <div style={{ display: "flex", gap: space['4'], flex: 1, overflow: "hidden" }}>
+    <div style={{ padding: space["6"], height: "100%", display: "flex", flexDirection: "column" }}>
+      <h1 style={headerStyle}>Profiles</h1>
+      <div style={{ display: "flex", gap: space["4"], flex: 1, overflow: "hidden" }}>
         {/* Profile list */}
-        <Panel rain={{ preset: "sidebar" }} style={{ width: "200px", flexShrink: 0, padding: space['2'], display: "flex", flexDirection: "column", overflowY: "auto" }}>
-          <div style={{ marginBottom: space['2'] }}>
-            <Button variant="ghost" size="sm" onClick={handleNew} style={{ width: "100%" }}>+ New Profile</Button>
+        <Panel style={{ width: "200px", flexShrink: 0, padding: space["2"], display: "flex", flexDirection: "column", overflowY: "auto" }}>
+          <div style={{ marginBottom: space["1"] }}>
+            <Button variant="ghost" size="sm" onClick={handleNew} style={{ width: "100%" }}>New Profile</Button>
           </div>
-          <div style={{ marginBottom: space['2'] }}>
+          <div style={{ marginBottom: space["2"] }}>
             <Button variant="ghost" size="sm" onClick={handleImport} style={{ width: "100%" }}>Import JSON</Button>
           </div>
           {config.profiles.map(p => (
@@ -135,25 +136,27 @@ export default function Profiles() {
               key={p.id}
               onClick={() => setSelected(p.id)}
               style={{
-                padding: `${space['2']} ${space['2']}`,
+                padding: `${space["2"]} ${space["2"]}`,
                 cursor: "pointer",
-                fontFamily: "var(--font-body, monospace)",
-                fontSize: "11px",
+                fontFamily: "var(--font-body, system-ui, sans-serif)",
+                fontSize: "13px",
                 color: p.id === selected ? colors.text.primary : colors.text.secondary,
                 backgroundColor: p.id === selected ? colors.bg.elevated : "transparent",
                 borderLeft: p.id === selected ? `2px solid ${colors.border.active}` : "2px solid transparent",
                 borderRadius: "2px",
-                marginBottom: space['1'],
+                marginBottom: space["1"],
               }}
             >
-              <span style={{ color: colors.text.ghost, fontSize: "9px", marginRight: space['1'] }}>{p.isBuiltIn ? "●" : "○"}</span>
               {p.name}
+              {p.isBuiltIn && (
+                <span style={{ fontSize: "10px", color: colors.text.ghost, marginLeft: space["2"] }}>built-in</span>
+              )}
             </div>
           ))}
         </Panel>
 
         {/* Editor */}
-        <Panel rain={{ preset: "diff" }} style={{ flex: 1, padding: space['4'], overflowY: "auto" }}>
+        <Panel style={{ flex: 1, padding: space["4"], overflowY: "auto" }}>
           {selectedProfile ? (
             <>
               <ProfileEditor
@@ -162,12 +165,12 @@ export default function Profiles() {
                 {...(!selectedProfile.isBuiltIn ? { onDelete: handleDelete } : {})}
                 {...(selectedProfile.isBuiltIn ? { onReset: handleReset } : {})}
               />
-              <div style={{ marginTop: space['4'], borderTop: `1px solid ${colors.border.default}`, paddingTop: space['3'] }}>
+              <div style={{ marginTop: space["4"], borderTop: `1px solid ${colors.border.default}`, paddingTop: space["3"] }}>
                 <Button variant="ghost" size="sm" onClick={handleExport}>Export JSON</Button>
               </div>
             </>
           ) : (
-            <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "12px", color: colors.text.tertiary }}>
+            <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.tertiary }}>
               Select a profile from the list.
             </div>
           )}

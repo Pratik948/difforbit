@@ -2,6 +2,21 @@ use crate::models::{config::RepoConfig, pr::PullRequest};
 use serde::Deserialize;
 use tauri_plugin_shell::ShellExt;
 
+/// Resolve the `gh` binary path. Tauri's shell does not inherit the user's PATH,
+/// so we probe known Homebrew / system locations before falling back to bare "gh".
+fn gh_bin() -> String {
+    for candidate in &[
+        "/opt/homebrew/bin/gh",   // Apple Silicon Homebrew
+        "/usr/local/bin/gh",      // Intel Homebrew
+        "/usr/bin/gh",
+    ] {
+        if std::path::Path::new(candidate).exists() {
+            return candidate.to_string();
+        }
+    }
+    "gh".to_string()
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct GhPrItem {
@@ -30,8 +45,9 @@ struct GhFile {
 #[tauri::command]
 pub async fn check_gh_auth(app: tauri::AppHandle) -> Result<String, String> {
     let shell = app.shell();
+    let gh = gh_bin();
     let output = shell
-        .command("gh")
+        .command(&gh)
         .args(["auth", "status", "--json", "activeToken"])
         .output()
         .await
@@ -40,7 +56,7 @@ pub async fn check_gh_auth(app: tauri::AppHandle) -> Result<String, String> {
     if output.status.success() {
         // Try to get the username
         let user_out = shell
-            .command("gh")
+            .command(&gh)
             .args(["api", "user", "--jq", ".login"])
             .output()
             .await
@@ -58,12 +74,13 @@ pub async fn list_pending_prs(
     repos: Vec<RepoConfig>,
 ) -> Result<Vec<PullRequest>, String> {
     let shell = app.shell();
+    let gh = gh_bin();
     let mut all_prs = Vec::new();
 
     for repo_cfg in repos.iter().filter(|r| r.enabled) {
         let repo = format!("{}/{}", repo_cfg.owner, repo_cfg.repo);
         let output = shell
-            .command("gh")
+            .command(&gh)
             .args([
                 "pr", "list",
                 "--repo", &repo,
@@ -107,8 +124,9 @@ pub async fn fetch_pr_diff(
     number: u32,
 ) -> Result<String, String> {
     let shell = app.shell();
+    let gh = gh_bin();
     let output = shell
-        .command("gh")
+        .command(&gh)
         .args(["pr", "diff", &number.to_string(), "--repo", &repo])
         .output()
         .await
@@ -147,6 +165,7 @@ pub async fn post_inline_comments(
     }
 
     let shell = app.shell();
+    let gh = gh_bin();
 
     // Build review body with inline comments
     let comments_json: Vec<serde_json::Value> = comments.iter().map(|c| {
@@ -172,7 +191,7 @@ pub async fn post_inline_comments(
     let tmp_str = tmp.to_string_lossy().to_string();
 
     let output = shell
-        .command("gh")
+        .command(&gh)
         .args(["api", "--method", "POST", &endpoint, "--input", &tmp_str])
         .output()
         .await;
@@ -192,8 +211,9 @@ pub async fn approve_pr(
     number: u32,
 ) -> Result<(), String> {
     let shell = app.shell();
+    let gh = gh_bin();
     let output = shell
-        .command("gh")
+        .command(&gh)
         .args(["pr", "review", &number.to_string(), "--repo", &repo, "--approve"])
         .output()
         .await
@@ -214,8 +234,9 @@ pub async fn request_changes(
     body: String,
 ) -> Result<(), String> {
     let shell = app.shell();
+    let gh = gh_bin();
     let output = shell
-        .command("gh")
+        .command(&gh)
         .args([
             "pr", "review", &number.to_string(),
             "--repo", &repo,

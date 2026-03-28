@@ -1,7 +1,18 @@
 use crate::commands::{config::get_config, engines::run_engine, github::fetch_pr_diff};
 use crate::models::review::{Report, ReportMeta};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tauri::{Emitter, Manager};
+use tauri_plugin_notification::NotificationExt;
+use tokio::sync::Semaphore;
+
+fn notify(app: &tauri::AppHandle, title: &str, body: &str) {
+    let _ = app.notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show();
+}
 
 fn reports_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
     app.path().app_data_dir().unwrap().join("reports")
@@ -11,13 +22,36 @@ fn seen_path(app: &tauri::AppHandle) -> std::path::PathBuf {
     app.path().app_data_dir().unwrap().join("seen.json")
 }
 
-type SeenMap = HashMap<String, HashMap<String, String>>;
+#[derive(serde::Serialize, serde::Deserialize, Clone, Default)]
+struct SeenEntry {
+    updated_at: String,
+    head_sha: String,
+    files: Vec<String>,
+}
+
+type SeenMap = HashMap<String, HashMap<String, SeenEntry>>;
 
 fn load_seen(app: &tauri::AppHandle) -> SeenMap {
     let path = seen_path(app);
     if !path.exists() { return HashMap::new(); }
     let data = std::fs::read_to_string(&path).unwrap_or_default();
-    serde_json::from_str(&data).unwrap_or_default()
+    // Support both old String format and new SeenEntry format
+    if let Ok(map) = serde_json::from_str::<SeenMap>(&data) {
+        return map;
+    }
+    // Migrate old format: HashMap<String, HashMap<String, String>>
+    if let Ok(old) = serde_json::from_str::<HashMap<String, HashMap<String, String>>>(&data) {
+        let mut new_map = SeenMap::new();
+        for (repo, prs) in old {
+            let mut pr_map = HashMap::new();
+            for (num, updated_at) in prs {
+                pr_map.insert(num, SeenEntry { updated_at, ..Default::default() });
+            }
+            new_map.insert(repo, pr_map);
+        }
+        return new_map;
+    }
+    HashMap::new()
 }
 
 fn save_seen(app: &tauri::AppHandle, seen: &SeenMap) {
@@ -32,10 +66,17 @@ fn save_seen(app: &tauri::AppHandle, seen: &SeenMap) {
 
 #[tauri::command]
 pub async fn trigger_run_now(app: tauri::AppHandle) -> Result<(), String> {
-    run_review_session(app, false).await
+    run_review_session(app, false, false).await
 }
 
-pub async fn run_review_session(app: tauri::AppHandle, force: bool) -> Result<(), String> {
+#[tauri::command]
+pub async fn trigger_review_changed_files(app: tauri::AppHandle) -> Result<(), String> {
+    run_review_session(app, false, true).await
+}
+
+pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_files_only: bool) -> Result<(), String> {
+    use crate::diff::extractor::filter_diff_to_files;
+
     let config = get_config(app.clone())?;
     let seen = load_seen(&app);
 
@@ -51,9 +92,12 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool) -> Result<()
         for pr in prs {
             if !force {
                 if let Some(repo_seen) = seen.get(&repo) {
-                    if let Some(seen_at) = repo_seen.get(&pr.number.to_string()) {
-                        if seen_at == &pr.updated_at {
-                            continue; // already reviewed, unchanged
+                    if let Some(entry) = repo_seen.get(&pr.number.to_string()) {
+                        if entry.head_sha == pr.head_sha && !changed_files_only {
+                            continue; // already reviewed, no new commits
+                        }
+                        if entry.head_sha == pr.head_sha && changed_files_only {
+                            continue; // no new commits — nothing to re-review
                         }
                     }
                 }
@@ -70,48 +114,80 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool) -> Result<()
         return Ok(());
     }
 
+    // Run up to 3 reviews concurrently
+    let sem = Arc::new(Semaphore::new(3));
+    let mut join_set = tokio::task::JoinSet::new();
+
+    let seen_snap = seen.clone();
+    for (pr, profile_id) in prs_to_review {
+        let app2 = app.clone();
+        let config2 = config.clone();
+        let sem2 = sem.clone();
+        let seen2 = seen_snap.clone();
+
+        join_set.spawn(async move {
+            let _permit = sem2.acquire().await.unwrap();
+
+            // Fetch full diff
+            let mut pr = pr;
+            match fetch_pr_diff(app2.clone(), pr.repo.clone(), pr.number).await {
+                Ok(diff) => pr.diff = diff,
+                Err(e) => {
+                    let _ = app2.emit("review:error", serde_json::json!({ "message": e }));
+                    notify(&app2, "DiffOrbit — Review error", &e);
+                    return None;
+                }
+            }
+
+            // If changed_files_only: filter diff to only files not in previous review
+            if changed_files_only {
+                let repo_key = pr.repo.clone();
+                let pr_key = pr.number.to_string();
+                if let Some(entry) = seen2.get(&repo_key).and_then(|m| m.get(&pr_key)) {
+                    let prev_files = &entry.files;
+                    let new_files: Vec<String> = pr.files.iter()
+                        .filter(|f| !prev_files.contains(f))
+                        .cloned()
+                        .collect();
+                    if !new_files.is_empty() {
+                        pr.diff = filter_diff_to_files(&pr.diff, &new_files);
+                        pr.files = new_files;
+                    }
+                }
+            }
+
+            // Find matching profile
+            let profile = config2.profiles.iter()
+                .find(|p| p.id == profile_id)
+                .or_else(|| config2.profiles.first())
+                .cloned()
+                .unwrap_or_else(|| crate::commands::config::built_in_profiles()[0].clone());
+
+            match run_engine(&app2, &pr, &profile, &config2.engine).await {
+                Ok(review) => {
+                    let _ = app2.emit("review:pr_done", serde_json::json!({
+                        "pr_number": review.pr.number,
+                        "verdict": review.verdict,
+                        "issues_count": review.issues.len(),
+                    }));
+                    Some((pr.repo.clone(), pr.number.to_string(), pr.updated_at.clone(), pr.head_sha.clone(), pr.files.clone(), review))
+                }
+                Err(e) => {
+                    let _ = app2.emit("review:error", serde_json::json!({ "message": e }));
+                    notify(&app2, "DiffOrbit — Review error", &e);
+                    None
+                }
+            }
+        });
+    }
+
     let mut reviews = Vec::new();
     let mut seen_updated = load_seen(&app);
 
-    for (mut pr, profile_id) in prs_to_review {
-        // Fetch diff
-        match fetch_pr_diff(app.clone(), pr.repo.clone(), pr.number).await {
-            Ok(diff) => pr.diff = diff,
-            Err(e) => {
-                let _ = app.emit("review:error", serde_json::json!({ "message": e }));
-                continue;
-            }
-        }
-
-        // Find matching profile
-        let profile = config.profiles.iter()
-            .find(|p| p.id == profile_id)
-            .or_else(|| config.profiles.first())
-            .cloned()
-            .unwrap_or_else(|| crate::commands::config::built_in_profiles()[0].clone());
-
-        match run_engine(&app, &pr, &profile, &config.engine).await {
-            Ok(review) => {
-                let pr_num = pr.number.to_string();
-                let repo = pr.repo.clone();
-                let updated = pr.updated_at.clone();
-
-                let _ = app.emit("review:pr_done", serde_json::json!({
-                    "pr_number": review.pr.number,
-                    "verdict": review.verdict,
-                    "issues_count": review.issues.len(),
-                }));
-
-                seen_updated
-                    .entry(repo)
-                    .or_default()
-                    .insert(pr_num, updated);
-
-                reviews.push(review);
-            }
-            Err(e) => {
-                let _ = app.emit("review:error", serde_json::json!({ "message": e }));
-            }
+    while let Some(result) = join_set.join_next().await {
+        if let Ok(Some((repo, pr_num, updated_at, head_sha, files, review))) = result {
+            seen_updated.entry(repo).or_default().insert(pr_num, SeenEntry { updated_at, head_sha, files });
+            reviews.push(review);
         }
     }
 
@@ -134,6 +210,17 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool) -> Result<()
     }
 
     let _ = app.emit("review:completed", serde_json::json!({ "report_id": report_id }));
+
+    // macOS notification
+    let approved = report.reviews.iter().filter(|r| r.verdict == "APPROVE").count();
+    let changes  = report.reviews.iter().filter(|r| r.verdict == "REQUEST_CHANGES").count();
+    let issues_total: usize = report.reviews.iter().map(|r| r.issues.len()).sum();
+    let body = format!(
+        "{} PRs reviewed · {} issues · ✅ {} approved · ⚠ {} need changes",
+        report.reviews.len(), issues_total, approved, changes
+    );
+    notify(&app, "DiffOrbit — Review complete", &body);
+
     Ok(())
 }
 

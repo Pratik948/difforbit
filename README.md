@@ -8,7 +8,7 @@ DiffOrbit lives in your menu bar and automatically reviews GitHub pull requests 
 
 ## Screenshots
 
-> Matrix rain aesthetic throughout — dark only, everything monospace, terminal-dense.
+> Three themes available: Matrix (dark green terminal), Shadcn Dark, Shadcn Light — switchable from Settings.
 
 | Dashboard | Report Viewer | Configuration |
 |-----------|---------------|---------------|
@@ -28,7 +28,7 @@ DiffOrbit lives in your menu bar and automatically reviews GitHub pull requests 
 - **8 built-in review profiles** — Flutter/Dart, React/TS, React Native, Swift, Kotlin, Java, C/C++, Generic
 - **Custom profiles** — full system-prompt editor with JSON import/export
 - **Report history** — persistent JSON reports with statistics (verdicts, issue breakdown, top repos)
-- **MatrixUI design system** — matrix rain canvas on every panel, Share Tech Mono headers, JetBrains Mono code
+- **Configurable themes** — Matrix (dark green), Shadcn Dark, Shadcn Light; persisted to localStorage
 
 ---
 
@@ -40,7 +40,7 @@ DiffOrbit lives in your menu bar and automatically reviews GitHub pull requests 
 | Frontend | React 18 + TypeScript + Vite |
 | State | Zustand |
 | Routing | React Router v6 (MemoryRouter) |
-| Styling | @matrixui/tokens + @matrixui/react (inline styles, no CSS files) |
+| Styling | shadcn/ui + Tailwind CSS v4 + custom `--do-*` token layer |
 | GitHub | `gh` CLI (shell-out) |
 | AI | `reqwest` HTTP (Anthropic/OpenAI) · `claude` CLI (Claude Code) |
 | Storage | JSON files in `~/Library/Application Support/DiffOrbit/` |
@@ -151,11 +151,11 @@ C4Component
   title DiffOrbit — React Frontend Components
 
   Container_Boundary(fe, "React Frontend") {
-    Component(main, "main.tsx", "Entry", "injectMatrixUITokens(), MemoryRouter, ToastProvider")
+    Component(main, "main.tsx", "Entry", "applyTheme(), MemoryRouter, Toaster")
     Component(app, "App.tsx", "Root", "Two-column layout: Sidebar + routed main area")
 
-    Component(sidebar, "layout/Sidebar.tsx", "Navigation", "Nav links with MatrixRain background")
-    Component(windowframe, "layout/WindowFrame.tsx", "Chrome", "Header bar with rain, wraps entire app")
+    Component(sidebar, "layout/Sidebar.tsx", "Navigation", "Nav links, theme-aware sidebar")
+    Component(windowframe, "layout/WindowFrame.tsx", "Chrome", "Header bar, wraps entire app")
     Component(traypopover, "layout/TrayPopover.tsx", "Tray UI", "Status, next run, Run Now — shown from tray")
 
     Component(dashboard, "pages/Dashboard.tsx", "Dashboard", "Run status, progress bar, next-run, last report link")
@@ -218,7 +218,7 @@ flowchart TD
     J -->|anthropic| K[POST /v1/messages\nAnthropic API]
     J -->|openai_compatible| L[POST /chat/completions\nOpenAI-compat endpoint]
     J -->|claude_code| M[claude -p prompt\nCLI subprocess]
-    K & L & M --> N[extract_json: find first { ... }]
+    K & L & M --> N["extract_json: find first brace, parse to PRReview"]
     N --> O[Parse RawReview → PRReview]
     O --> P[parse_diff → diffMap\nfile→line→position]
     P --> Q[extract_hunk_for_line\nper issue with file+line]
@@ -406,7 +406,7 @@ difforbit/
 │           └── review.rs             ← PRReview, ReviewIssue, Report, DiffLine
 │
 ├── src/
-│   ├── main.tsx                      ← injectMatrixUITokens(), MemoryRouter, ToastProvider
+│   ├── main.tsx                      ← applyTheme(), MemoryRouter, Toaster
 │   ├── App.tsx                       ← two-column layout, all routes
 │   ├── pages/
 │   │   ├── Dashboard.tsx             ← run status, progress bar, next-run
@@ -441,7 +441,7 @@ difforbit/
 | **OpenAI-compatible covers everything** | One engine type handles OpenAI, Ollama, Groq, Together, Mistral, any local model |
 | **API keys never in config.json** | Written to `userData/.keys` (file-based; macOS Keychain in production); `get_api_key` is NOT an IPC command |
 | **Reports as JSON files** | No database — simple, portable, inspectable; each report is self-contained |
-| **MatrixUI inline styles** | No CSS files/modules/Tailwind in components; all styles are `React.CSSProperties` using `@matrixui/tokens` values |
+| **shadcn/ui + token layer** | Components use `var(--do-*)` CSS vars; `applyTheme()` swaps all tokens; shadcn vars bridged in `App.css` |
 | **MemoryRouter not BrowserRouter** | Tauri uses `tauri://` protocol; hash/history routing would need extra config |
 | **Seen-PR cache by updatedAt** | Avoids re-reviewing unchanged PRs between runs; bypassed by force flag |
 | **60s poll scheduler** | Simple, restartable, config-hot-reload on each tick; no cron crate dependency |
@@ -469,14 +469,10 @@ npm install -g @anthropic-ai/claude-code && claude
 ### Install & run
 
 ```bash
-# 1. Clone MatrixUI (peer dependency — not on npm)
-git clone https://github.com/Pratik948/matrix-ui.git ../matrix-ui
-cd ../matrix-ui && pnpm install && pnpm build && cd ../difforbit
-
-# 2. Install frontend deps
+# 1. Install frontend deps
 npm install
 
-# 3. Dev mode (opens Tauri window with hot-reload)
+# 2. Dev mode (opens Tauri window with hot-reload)
 npm run tauri dev
 ```
 

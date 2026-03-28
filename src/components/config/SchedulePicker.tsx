@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { colors, space } from "@matrixui/tokens"
-import { Switch, Button } from "@matrixui/react"
+import { colors, space } from "@/styles/tokens"
+import { Switch, Button } from "@/components/ui"
 import type { ScheduleConfig } from "@/types/config"
 import { getLaunchAgentStatus, setLaunchAgent } from "@/ipc/review"
 
