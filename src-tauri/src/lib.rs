@@ -5,7 +5,7 @@ mod models;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Manager,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -1,9 +1,10 @@
 use crate::commands::config::get_config;
 use crate::commands::review::run_review_session;
 use crate::models::config::ScheduleConfig;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use chrono::TimeZone as _;
 use std::time::Duration;
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 
 /// Global state: last run time (ISO string)
 static LAST_RUN_AT: Mutex<Option<String>> = Mutex::new(None);
