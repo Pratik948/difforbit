@@ -24,12 +24,12 @@ pub fn extract_hunk_for_line(
             }
             all_lines.push(DiffLine { r#type: "hunk".to_string(), line: None, text: line.to_string() });
         } else if line.starts_with('+') {
-            all_lines.push(DiffLine { r#type: "add".to_string(), line: Some(new_line), text: line[1..].to_string() });
+            all_lines.push(DiffLine { r#type: "add".to_string(), line: Some(new_line), text: line.get(1..).unwrap_or("").to_string() });
             new_line += 1;
         } else if line.starts_with('-') {
-            all_lines.push(DiffLine { r#type: "remove".to_string(), line: None, text: line[1..].to_string() });
+            all_lines.push(DiffLine { r#type: "remove".to_string(), line: None, text: line.get(1..).unwrap_or("").to_string() });
         } else {
-            all_lines.push(DiffLine { r#type: "context".to_string(), line: Some(new_line), text: line[1..].to_string() });
+            all_lines.push(DiffLine { r#type: "context".to_string(), line: Some(new_line), text: line.get(1..).unwrap_or("").to_string() });
             new_line += 1;
         }
     }
