@@ -1,50 +1,185 @@
 {
   "project": "DiffOrbit",
-  "last_updated": "2026-03-28",
-  "current_phase": 7,
-  "current_task": "A1",
+  "last_updated": "2026-03-28T11:31:00.012358Z",
+  "current_phase": 8,
+  "current_task": "done",
   "phases": {
-    "1": { "name": "Foundation & Scaffold", "status": "completed" },
-    "2": { "name": "Review Engine", "status": "completed" },
-    "3": { "name": "Report Viewer", "status": "completed" },
-    "4": { "name": "Scheduler", "status": "completed" },
-    "5": { "name": "Profiles Editor", "status": "completed" },
+    "1": {
+      "name": "Foundation & Scaffold",
+      "status": "completed"
+    },
+    "2": {
+      "name": "Review Engine",
+      "status": "completed"
+    },
+    "3": {
+      "name": "Report Viewer",
+      "status": "completed"
+    },
+    "4": {
+      "name": "Scheduler",
+      "status": "completed"
+    },
+    "5": {
+      "name": "Profiles Editor",
+      "status": "completed"
+    },
     "6": {
       "name": "Polish & Distribution",
       "status": "completed",
       "tasks": {
-        "6.1": { "name": "Report history stats", "status": "completed" },
-        "6.2": { "name": "App icon", "status": "skipped", "note": "Placeholder in place — proper icon requires macOS design tools" },
-        "6.3": { "name": "Code signing", "status": "skipped", "note": "Requires Apple Developer cert" },
-        "6.4": { "name": "Notarisation", "status": "skipped", "note": "Requires Apple cert + macOS" },
-        "6.5": { "name": "DMG build", "status": "skipped", "note": "Requires macOS" },
-        "6.6": { "name": "Auto-updater", "status": "skipped", "note": "Requires signed build + update server" },
-        "6.7": { "name": "Final QA", "status": "completed", "note": "0 TS errors, cargo check clean" }
+        "6.1": {
+          "name": "Report history stats",
+          "status": "completed"
+        },
+        "6.2": {
+          "name": "App icon",
+          "status": "skipped",
+          "note": "Placeholder in place \u2014 proper icon requires macOS design tools"
+        },
+        "6.3": {
+          "name": "Code signing",
+          "status": "skipped",
+          "note": "Requires Apple Developer cert"
+        },
+        "6.4": {
+          "name": "Notarisation",
+          "status": "skipped",
+          "note": "Requires Apple cert + macOS"
+        },
+        "6.5": {
+          "name": "DMG build",
+          "status": "skipped",
+          "note": "Requires macOS"
+        },
+        "6.6": {
+          "name": "Auto-updater",
+          "status": "skipped",
+          "note": "Requires signed build + update server"
+        },
+        "6.7": {
+          "name": "Final QA",
+          "status": "completed",
+          "note": "0 TS errors, cargo check clean"
+        }
       }
     },
     "7": {
       "name": "Feature Expansion (user-approved 2026-03-28)",
-      "status": "in_progress",
+      "status": "completed",
       "tasks": {
-        "A1": { "name": "macOS notifications (tauri-plugin-notification)", "status": "pending" },
-        "A2": { "name": "Parallel PR review — JoinSet + Semaphore(3)", "status": "pending" },
-        "A3": { "name": "Large diff truncation (60K budget, per-file)", "status": "pending" },
-        "A4": { "name": "Re-review changed files (headSha diff + filter_diff_to_files)", "status": "pending" },
-        "B1": { "name": "Onboarding wizard — 6 steps", "status": "pending" },
-        "B2": { "name": "Keyboard shortcuts hook + ShortcutsHelpModal", "status": "pending" },
-        "B3": { "name": "Search & filter bar — Reports page", "status": "pending" },
-        "B4": { "name": "Export Markdown + PDF", "status": "pending" },
-        "C1": { "name": "Empty states — Dashboard + Reports", "status": "pending" },
-        "C2": { "name": "Re-review changed files button on PRCard", "status": "pending" },
-        "C3": { "name": "Notification permission banner", "status": "pending" }
+        "A1": {
+          "name": "macOS notifications (tauri-plugin-notification)",
+          "status": "completed"
+        },
+        "A2": {
+          "name": "Parallel PR review \u2014 JoinSet + Semaphore(3)",
+          "status": "completed"
+        },
+        "A3": {
+          "name": "Large diff truncation (60K budget, per-file)",
+          "status": "completed"
+        },
+        "A4": {
+          "name": "Re-review changed files (headSha diff + filter_diff_to_files)",
+          "status": "completed"
+        },
+        "B1": {
+          "name": "Onboarding wizard \u2014 6 steps",
+          "status": "completed"
+        },
+        "B2": {
+          "name": "Keyboard shortcuts hook + ShortcutsHelpModal",
+          "status": "completed"
+        },
+        "B3": {
+          "name": "Search & filter bar \u2014 Reports page",
+          "status": "completed"
+        },
+        "B4": {
+          "name": "Export Markdown + PDF",
+          "status": "completed"
+        },
+        "C1": {
+          "name": "Empty states \u2014 Dashboard + Reports",
+          "status": "completed"
+        },
+        "C2": {
+          "name": "Re-review changed files button on PRCard",
+          "status": "completed"
+        },
+        "C3": {
+          "name": "Notification permission banner",
+          "status": "completed"
+        }
+      }
+    },
+    "8": {
+      "name": "UI Overhaul \u2014 shadcn + Theme System",
+      "status": "completed",
+      "tasks": {
+        "8.1": {
+          "name": "Remove MatrixUI; create --do-* token shim",
+          "status": "completed"
+        },
+        "8.2": {
+          "name": "Configurable themes: Matrix / Shadcn Dark / Shadcn Light",
+          "status": "completed"
+        },
+        "8.3": {
+          "name": "Shadcn compat wrappers: ButtonCompat, Panel, Modal, sonner",
+          "status": "completed"
+        },
+        "8.4": {
+          "name": "Remove MatrixUI from docs, CI, scripts, skills",
+          "status": "completed"
+        },
+        "8.5": {
+          "name": "UI text cleanup: remove // [ ] > decorators, fix typography",
+          "status": "completed"
+        },
+        "8.6": {
+          "name": "Fix Tailwind v4 @theme inline (bg-background, bg-primary etc.)",
+          "status": "completed"
+        },
+        "8.7": {
+          "name": "Fix Dialog opacity and button/input padding",
+          "status": "completed"
+        }
       }
     }
   },
   "decisions": [
-    { "timestamp": "2026-03-28", "decision": "Parallel review capped at 3 concurrent AI calls via Semaphore to avoid rate limits" },
-    { "timestamp": "2026-03-28", "decision": "PDF export uses window.print() — no extra library, print CSS handles layout" },
-    { "timestamp": "2026-03-28", "decision": "Onboarding gated on AppConfig.onboardingComplete bool; re-accessible via ? help icon" },
-    { "timestamp": "2026-03-28", "decision": "Diff truncation is per-file within 60K total budget; appends truncation notice to AI prompt" }
+    {
+      "timestamp": "2026-03-28",
+      "decision": "Parallel review capped at 3 concurrent AI calls via Semaphore to avoid rate limits"
+    },
+    {
+      "timestamp": "2026-03-28",
+      "decision": "PDF export uses window.print() \u2014 no extra library, print CSS handles layout"
+    },
+    {
+      "timestamp": "2026-03-28",
+      "decision": "Onboarding gated on AppConfig.onboardingComplete bool; re-accessible via ? help icon"
+    },
+    {
+      "timestamp": "2026-03-28",
+      "decision": "Diff truncation is per-file within 60K total budget; appends truncation notice to AI prompt"
+    },
+    {
+      "timestamp": "2026-03-28",
+      "decision": "Replaced MatrixUI with pure shadcn/ui + --do-* CSS token layer; themes switchable from Configuration page"
+    },
+    {
+      "timestamp": "2026-03-28",
+      "decision": "Added @theme inline to App.css \u2014 required in Tailwind v4 for bg-background/bg-primary utility classes to generate CSS"
+    }
   ],
-  "summary": "Phases 1-6 complete. Phase 7 (user-approved feature expansion) in progress: notifications, parallel review, diff truncation, re-review, onboarding wizard, keyboard shortcuts, search/filter, export MD/PDF, UX polish."
+  "summary": "All 8 phases complete. Clean shadcn UI, 3 themes, full review pipeline, scheduler, profiles, export. Pending: macOS-only (signing, notarisation, DMG, auto-updater).",
+  "session_log": [
+    {
+      "timestamp": "2026-03-28T11:31:00.012343Z",
+      "summary": "Phase 7 all tasks confirmed done. Phase 8: full MatrixUI removal, shadcn theme system, UI text cleanup, Tailwind v4 fix."
+    }
+  ]
 }
