@@ -282,6 +282,53 @@ async fn call_claude_code(
     }
 }
 
+#[tauri::command]
+pub async fn list_claude_models(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let shell = app.shell();
+    let claude = claude_bin();
+    info!(claude = %claude, "listing claude models");
+
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(15),
+        shell.command(&claude).args(["models", "--output", "json"]).output(),
+    )
+    .await;
+
+    let output = match result {
+        Ok(Ok(o)) => o,
+        Ok(Err(e)) => return Err(format!("claude CLI spawn failed: {e}")),
+        Err(_) => return Err("claude models timed out".to_string()),
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+
+    // Try JSON array first: [{"id":"..."}, ...]
+    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&stdout) {
+        let ids: Vec<String> = arr.iter()
+            .filter_map(|v| v.get("id").and_then(|id| id.as_str()).map(|s| s.to_string()))
+            .collect();
+        if !ids.is_empty() {
+            info!(count = ids.len(), "claude models listed");
+            return Ok(ids);
+        }
+    }
+
+    // Fall back: one model ID per line
+    let ids: Vec<String> = stdout
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .collect();
+
+    if ids.is_empty() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(if stderr.is_empty() { "no models returned".to_string() } else { stderr })
+    } else {
+        info!(count = ids.len(), "claude models listed");
+        Ok(ids)
+    }
+}
+
 pub async fn run_engine(
     app: &tauri::AppHandle,
     pr: &PullRequest,
