@@ -263,3 +263,13 @@ pub fn delete_report(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let path = reports_dir(&app).join(format!("{id}.json"));
     std::fs::remove_file(&path).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn send_welcome_notification(app: tauri::AppHandle) -> Result<(), String> {
+    notify(
+        &app,
+        "Welcome to DiffOrbit",
+        "Setup complete. You'll be notified here whenever a review run finishes.",
+    );
+    Ok(())
+}

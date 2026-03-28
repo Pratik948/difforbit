@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Routes, Route } from "react-router-dom"
 import { useConfigStore } from "@/store/configStore"
 import { useTheme } from "@/hooks/useTheme"
@@ -10,8 +11,13 @@ import Configuration from "@/pages/Configuration"
 import Profiles from "@/pages/Profiles"
 
 export default function App() {
+  const { loadConfig } = useConfigStore()
   const theme = useConfigStore(s => s.config.theme)
-  useTheme(theme ?? "matrix")
+  useTheme(theme ?? "shadcn-light")
+
+  useEffect(() => {
+    loadConfig()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const layoutStyle: React.CSSProperties = {
     display: "flex",

@@ -14,7 +14,7 @@ import { useHelpShortcut } from "@/hooks/useKeyboardShortcuts"
 export default function Dashboard() {
   const { runStatus, progress, lastReportId } = useReviewStore()
   const { nextRunLabel } = useScheduler()
-  const { config, saveConfig } = useConfigStore()
+  const { config, loading, saveConfig } = useConfigStore()
   const navigate = useNavigate()
   const [showHelp, setShowHelp] = useState(false)
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
@@ -25,7 +25,9 @@ export default function Dashboard() {
     try { await triggerRunNow() } catch (e) { console.error(e) }
   }
 
-  const showOnboarding = config && !config.onboardingComplete
+  // Don't show onboarding while config is still loading from disk — prevents
+  // the wizard flashing on every start before the persisted value is read.
+  const showOnboarding = !loading && config != null && !config.onboardingComplete
   const hasRuns = !!lastReportId
 
   const headerStyle: React.CSSProperties = {

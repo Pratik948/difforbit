@@ -3,6 +3,7 @@ import { Modal, Button, Input } from "@/components/ui"
 import { colors, space, textGlow } from "@/styles/tokens"
 import { checkGhAuth } from "@/ipc/github"
 import { saveApiKey } from "@/ipc/engines"
+import { sendWelcomeNotification } from "@/ipc/review"
 import { useConfigStore } from "@/store/configStore"
 
 const STEPS = [
@@ -195,10 +196,17 @@ function StepGitHub() {
 
 // Step 4: AI Engine
 function StepAIEngine() {
-  const { config } = useConfigStore()
+  const { config, saveConfig } = useConfigStore()
   const [engine, setEngine] = useState(config?.engine.type ?? "anthropic")
   const [apiKey, setApiKey] = useState("")
   const [saved, setSaved] = useState(false)
+
+  async function selectEngine(type: "anthropic" | "openai_compatible" | "claude_code") {
+    setEngine(type)
+    if (config) {
+      await saveConfig({ ...config, engine: { ...config.engine, type } })
+    }
+  }
 
   async function saveKey() {
     const service = engine === "anthropic" ? "difforbit.anthropic" : "difforbit.openai"
@@ -219,7 +227,7 @@ function StepAIEngine() {
         ].map(({ value, label, desc }) => (
           <div
             key={value}
-            onClick={() => setEngine(value as "anthropic" | "openai_compatible" | "claude_code")}
+            onClick={() => selectEngine(value as "anthropic" | "openai_compatible" | "claude_code")}
             style={{
               cursor: "pointer",
               padding: space["3"],
@@ -362,6 +370,9 @@ export function OnboardingWizard({ onClose }: { onClose: () => void }) {
     if (config) {
       await saveConfig({ ...config, onboardingComplete: true })
     }
+    // Send welcome notification — this also triggers the macOS permission prompt
+    // on first use so future review-complete notifications are allowed.
+    try { await sendWelcomeNotification() } catch { /* ignore if notifications not allowed */ }
     onClose()
   }
 

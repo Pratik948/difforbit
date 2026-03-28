@@ -76,12 +76,13 @@ const THEMES: Record<ThemeId, ThemeVars> = {
     "--font-code":           "'JetBrains Mono', 'Fira Code', monospace",
   },
   "shadcn-dark": {
+    // shadcn/ui zinc dark — https://ui.shadcn.com/themes
     "--do-bg-base":          "hsl(240 10% 3.9%)",
-    "--do-bg-surface":       "hsl(240 3.7% 10%)",
+    "--do-bg-surface":       "hsl(240 10% 3.9%)",
     "--do-bg-elevated":      "hsl(240 3.7% 15.9%)",
-    "--do-bg-input":         "hsl(240 3.7% 12%)",
+    "--do-bg-input":         "hsl(240 3.7% 15.9%)",
     "--do-bg-overlay":       "rgba(0,0,0,0.6)",
-    "--do-bg-modal":         "hsl(240 3.7% 10%)",
+    "--do-bg-modal":         "hsl(240 10% 3.9%)",
     "--do-text-primary":     "hsl(0 0% 98%)",
     "--do-text-secondary":   "hsl(240 5% 64.9%)",
     "--do-text-tertiary":    "hsl(240 3.8% 46.1%)",
@@ -89,12 +90,12 @@ const THEMES: Record<ThemeId, ThemeVars> = {
     "--do-border-subtle":    "hsl(240 3.7% 12%)",
     "--do-border":           "hsl(240 3.7% 15.9%)",
     "--do-border-active":    "hsl(240 4.9% 83.9%)",
-    "--do-accent":           "hsl(0 0% 98%)",
+    "--do-accent":           "hsl(0 0% 98%)",       // shadcn dark primary — near white
     "--do-accent-muted":     "hsl(240 3.7% 25%)",
-    "--do-accent-cyan":      "hsl(187 100% 42%)",
-    "--do-danger":           "hsl(0 84.2% 60.2%)",
+    "--do-accent-cyan":      "hsl(198 93% 60%)",    // standard info blue
+    "--do-danger":           "hsl(0 62.8% 30.6%)",  // shadcn dark destructive
     "--do-warning":          "hsl(38 92% 50%)",
-    "--do-success":          "hsl(142 76% 36%)",
+    "--do-success":          "hsl(142 69% 58%)",    // softer green for dark bg
     "--do-diff-added-bg":    "rgba(34,197,94,0.10)",
     "--do-diff-removed-bg":  "rgba(239,68,68,0.10)",
     "--do-text-glow":        "none",
@@ -104,25 +105,26 @@ const THEMES: Record<ThemeId, ThemeVars> = {
     "--font-code":           "'JetBrains Mono', 'Fira Code', monospace",
   },
   "shadcn-light": {
+    // shadcn/ui zinc light — https://ui.shadcn.com/themes
     "--do-bg-base":          "hsl(0 0% 100%)",
-    "--do-bg-surface":       "hsl(0 0% 96.1%)",
-    "--do-bg-elevated":      "hsl(0 0% 100%)",
+    "--do-bg-surface":       "hsl(0 0% 98%)",
+    "--do-bg-elevated":      "hsl(240 4.8% 95.9%)",
     "--do-bg-input":         "hsl(0 0% 100%)",
     "--do-bg-overlay":       "rgba(0,0,0,0.4)",
     "--do-bg-modal":         "hsl(0 0% 100%)",
     "--do-text-primary":     "hsl(240 10% 3.9%)",
     "--do-text-secondary":   "hsl(240 3.8% 46.1%)",
-    "--do-text-tertiary":    "hsl(240 3.7% 65%)",
+    "--do-text-tertiary":    "hsl(240 3.8% 60%)",
     "--do-text-ghost":       "hsl(240 3.7% 78%)",
     "--do-border-subtle":    "hsl(240 5.9% 95%)",
     "--do-border":           "hsl(240 5.9% 90%)",
-    "--do-border-active":    "hsl(240 10% 3.9%)",
-    "--do-accent":           "hsl(240 5.9% 10%)",
+    "--do-border-active":    "hsl(240 5.9% 10%)",
+    "--do-accent":           "hsl(240 5.9% 10%)",   // shadcn light primary — near black
     "--do-accent-muted":     "hsl(240 4.8% 85%)",
-    "--do-accent-cyan":      "hsl(187 100% 32%)",
-    "--do-danger":           "hsl(0 84.2% 60.2%)",
+    "--do-accent-cyan":      "hsl(198 93% 40%)",    // standard info blue for light bg
+    "--do-danger":           "hsl(0 84.2% 60.2%)",  // shadcn light destructive
     "--do-warning":          "hsl(38 92% 50%)",
-    "--do-success":          "hsl(142 76% 36%)",
+    "--do-success":          "hsl(142 76% 36%)",    // standard success green
     "--do-diff-added-bg":    "rgba(34,197,94,0.10)",
     "--do-diff-removed-bg":  "rgba(239,68,68,0.10)",
     "--do-text-glow":        "none",
