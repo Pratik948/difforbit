@@ -15,6 +15,18 @@ interface PRCardProps {
 
 const actionedKey = (review: PRReview) => `difforbit-actioned-${review.pr.repo}-${review.pr.number}`
 
+function isActioned(review: PRReview): boolean {
+  try {
+    const raw = localStorage.getItem(actionedKey(review))
+    if (!raw) return false
+    const { headSha } = JSON.parse(raw) as { headSha: string; at: string }
+    // Only treat as actioned if the PR hasn't been updated since (same commit SHA)
+    return headSha === review.commitSha
+  } catch {
+    return false
+  }
+}
+
 export default function PRCard({ review: initialReview }: PRCardProps) {
   const [review, setReview] = useState(initialReview)
   const [positiveOpen, setPositiveOpen] = useState(false)
@@ -24,13 +36,11 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
   const [approving, setApproving] = useState(false)
   const [exportingMd, setExportingMd] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
-  const [actioned, setActioned] = useState(
-    () => localStorage.getItem(actionedKey(initialReview)) === "1"
-  )
+  const [actioned, setActioned] = useState(() => isActioned(initialReview))
   const { addToast } = useToast()
 
   const markActioned = () => {
-    localStorage.setItem(actionedKey(review), "1")
+    localStorage.setItem(actionedKey(review), JSON.stringify({ headSha: review.commitSha, at: new Date().toISOString() }))
     setActioned(true)
   }
 
