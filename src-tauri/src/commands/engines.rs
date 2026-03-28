@@ -8,39 +8,25 @@ use crate::commands::keychain::get_api_key_internal;
 use crate::diff::{extractor::extract_hunk_for_line, parser::parse_diff};
 use tauri_plugin_shell::ShellExt;
 
-fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, engine_label: &str) -> String {
-    format!(
-        "{}\n\n\
-        ## PR to Review\n\
-        Repository: {}\n\
-        PR #{}: {}\n\
-        Author: {}\n\
-        Files changed: {}\n\n\
-        ## Diff\n\
-        ```diff\n{}\n```\n\n\
-        ## Instructions\n\
-        Return ONLY raw JSON (no markdown fences, no extra text) matching this exact schema:\n\
-        {{\n\
-          \"verdict\": \"APPROVE | REQUEST_CHANGES | NEEDS_DISCUSSION\",\n\
-          \"summary\": \"2-3 sentence summary\",\n\
-          \"issues\": [{{\n\
-            \"file\": \"exact path or null\",\n\
-            \"line\": 123,\n\
-            \"description\": \"...\",\n\
-            \"severity\": \"High | Medium | Low | NEEDS_VERIFICATION\",\n\
-            \"category\": \"Code Quality | Logic | Stability | Performance | Security | Best Practices\",\n\
-            \"suggested_comment\": \"...\"\n\
-          }}],\n\
-          \"positive_notes\": [\"...\"],\n\
-          \"overall_notes\": \"...\"\n\
-        }}\n\
-        Engine: {}",
-        profile.system_prompt,
-        pr.repo, pr.number, pr.title, pr.author,
-        pr.files.join(", "),
-        pr.diff,
-        engine_label,
-    )
+fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, _engine_label: &str) -> String {
+    let diff_truncated = if pr.diff.len() > 12_000 {
+        &pr.diff[..12_000]
+    } else {
+        &pr.diff
+    };
+    let file_list: Vec<&str> = pr.files.iter().take(20).map(|s| s.as_str()).collect();
+    let file_list_str = file_list.join(", ");
+    let files_changed = pr.files.len().to_string();
+
+    profile.system_prompt
+        .replace("{repo}", &pr.repo)
+        .replace("{number}", &pr.number.to_string())
+        .replace("{title}", &pr.title)
+        .replace("{author}", &pr.author)
+        .replace("{url}", &pr.url)
+        .replace("{files_changed}", &files_changed)
+        .replace("{file_list}", &file_list_str)
+        .replace("{diff}", diff_truncated)
 }
 
 fn extract_json(raw: &str) -> Result<RawReview, String> {
