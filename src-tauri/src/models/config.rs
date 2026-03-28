@@ -54,7 +54,11 @@ pub struct AppConfig {
     pub diff_context: u32,
     #[serde(default)]
     pub onboarding_complete: bool,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
+
+fn default_theme() -> String { "matrix".to_string() }
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -79,6 +83,7 @@ impl Default for AppConfig {
             show_diff: true,
             diff_context: 5,
             onboarding_complete: false,
+            theme: "matrix".to_string(),
         }
     }
 }

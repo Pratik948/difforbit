@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom"
-import { colors } from "@matrixui/tokens"
+import { useConfigStore } from "@/store/configStore"
+import { useTheme } from "@/hooks/useTheme"
 import Sidebar from "@/components/layout/Sidebar"
 import WindowFrame from "@/components/layout/WindowFrame"
 import Dashboard from "@/pages/Dashboard"
@@ -9,11 +10,14 @@ import Configuration from "@/pages/Configuration"
 import Profiles from "@/pages/Profiles"
 
 export default function App() {
+  const theme = useConfigStore(s => s.config.theme)
+  useTheme(theme ?? "matrix")
+
   const layoutStyle: React.CSSProperties = {
     display: "flex",
     width: "100vw",
     height: "100%",
-    backgroundColor: colors.bg.base,
+    backgroundColor: "var(--do-bg-base)",
     overflow: "hidden",
   }
 

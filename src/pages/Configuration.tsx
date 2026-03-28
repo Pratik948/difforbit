@@ -7,6 +7,8 @@ import EngineSelector from "@/components/config/EngineSelector"
 import SchedulePicker from "@/components/config/SchedulePicker"
 import { checkGhAuth } from "@/ipc/github"
 import type { AppConfig } from "@/types/config"
+import { THEME_META } from "@/styles/themes"
+import type { ThemeId } from "@/styles/themes"
 
 export default function Configuration() {
   const { config, loading, loadConfig, saveConfig } = useConfigStore()
@@ -125,6 +127,43 @@ export default function Configuration() {
       <Panel rain={{ preset: "diff" }} style={panelStyle}>
         <div style={sectionHeaderStyle}>SCHEDULE</div>
         <SchedulePicker schedule={draft.schedule} onChange={schedule => setDraft({ ...draft, schedule })} />
+      </Panel>
+
+      {/* Theme section */}
+      <Panel rain={{ preset: "diff" }} style={panelStyle}>
+        <div style={sectionHeaderStyle}>APPEARANCE</div>
+        <div style={{ display: "flex", gap: space['3'], flexWrap: "wrap" }}>
+          {THEME_META.map(t => {
+            const active = (draft.theme ?? "matrix") === t.id
+            return (
+              <div
+                key={t.id}
+                onClick={() => setDraft({ ...draft, theme: t.id as ThemeId })}
+                style={{
+                  cursor: "pointer",
+                  border: `1px solid ${active ? colors.border.active : colors.border.default}`,
+                  borderRadius: "6px",
+                  padding: space['3'],
+                  width: "160px",
+                  background: active ? `${colors.border.active}11` : "transparent",
+                }}
+              >
+                {/* colour swatch */}
+                <div style={{ display: "flex", gap: "4px", marginBottom: space['2'] }}>
+                  {[t.preview.bg, t.preview.surface, t.preview.text, t.preview.accent].map((c, i) => (
+                    <div key={i} style={{ width: "16px", height: "16px", borderRadius: "3px", background: c, border: "1px solid rgba(255,255,255,0.1)" }} />
+                  ))}
+                </div>
+                <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "12px", color: active ? colors.text.primary : colors.text.secondary, marginBottom: "2px" }}>
+                  {t.label}
+                </div>
+                <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "10px", color: colors.text.tertiary }}>
+                  {t.description}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </Panel>
 
       {/* Save */}
