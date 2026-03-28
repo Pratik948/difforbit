@@ -93,7 +93,8 @@ pub async fn list_pending_prs(
             .map_err(|e| e.to_string())?;
 
         if !output.status.success() {
-            continue; // skip repos where gh fails (no access, etc.)
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(format!("gh pr list failed for {repo}: {stderr}"));
         }
 
         let raw = String::from_utf8_lossy(&output.stdout);

@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { Routes, Route } from "react-router-dom"
 import { useConfigStore } from "@/store/configStore"
 import { useTheme } from "@/hooks/useTheme"
+import { useTauriEvents } from "@/hooks/useTauriEvents"
 import Sidebar from "@/components/layout/Sidebar"
 import WindowFrame from "@/components/layout/WindowFrame"
 import Dashboard from "@/pages/Dashboard"
@@ -14,6 +15,10 @@ export default function App() {
   const { loadConfig } = useConfigStore()
   const theme = useConfigStore(s => s.config.theme)
   useTheme(theme ?? "shadcn-light")
+
+  // Global event listeners — must be at App level so events are captured
+  // even when the user is not on the Dashboard page (e.g. tray Run Now).
+  useTauriEvents()
 
   useEffect(() => {
     loadConfig()
