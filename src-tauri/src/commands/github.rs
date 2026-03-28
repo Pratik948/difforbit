@@ -48,7 +48,7 @@ pub async fn check_gh_auth(app: tauri::AppHandle) -> Result<String, String> {
     let gh = gh_bin();
     let output = shell
         .command(&gh)
-        .args(["auth", "status", "--json", "activeToken"])
+        .args(["auth", "status"])
         .output()
         .await
         .map_err(|e| e.to_string())?;

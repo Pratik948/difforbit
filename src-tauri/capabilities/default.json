@@ -5,6 +5,17 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "shell:default",
+    "shell:allow-execute",
+    "shell:allow-spawn",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-read-dir",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-exists",
+    "fs:scope-appdata-recursive"
   ]
 }
