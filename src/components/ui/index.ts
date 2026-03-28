@@ -1,7 +1,13 @@
+// Barrel — all app imports come through here.
+// Shadcn components + thin compat wrappers that preserve existing prop APIs.
+
+export { Button } from "./ButtonCompat"
+export { Input } from "./input"
+export { Textarea } from "./textarea"
+export { Switch } from "./SwitchCompat"
+export { Badge } from "./badge"
+export { Card } from "./card"
 export { Panel } from "./Panel"
-export { Button } from "./Button"
-export { Input } from "./Input"
-export { Textarea } from "./Textarea"
-export { Switch } from "./Switch"
 export { Modal } from "./Modal"
-export { useToast, ToastProvider } from "./toast"
+export { Toaster as ToastProvider } from "./sonner"
+export { useToast } from "@/hooks/useToastState"

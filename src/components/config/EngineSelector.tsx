@@ -86,17 +86,17 @@ export default function EngineSelector({ engine, onChange }: EngineSelectorProps
           {engine.type === "openai_compatible" && (
             <div style={{ marginBottom: space['3'] }}>
               <span style={labelStyle}>Base URL</span>
-              <Input variant="cyan" value={engine.baseUrl ?? ""} onChange={e => onChange({ ...engine, baseUrl: e.target.value })} placeholder="https://api.openai.com/v1" />
+              <Input value={engine.baseUrl ?? ""} onChange={e => onChange({ ...engine, baseUrl: e.target.value })} placeholder="https://api.openai.com/v1" />
             </div>
           )}
           <div style={{ marginBottom: space['3'] }}>
             <span style={labelStyle}>Model</span>
-            <Input variant="green" value={engine.model} onChange={e => onChange({ ...engine, model: e.target.value })} placeholder="claude-opus-4-5-20251001" />
+            <Input value={engine.model} onChange={e => onChange({ ...engine, model: e.target.value })} placeholder="claude-opus-4-5-20251001" />
           </div>
           <div style={{ marginBottom: space['3'] }}>
             <span style={labelStyle}>API Key — {apiKeyStatus === "set" ? <span style={{ color: colors.status.synced }}>● SET</span> : <span style={{ color: colors.status.behind }}>○ NOT SET</span>}</span>
             <div style={{ display: "flex", gap: space['2'], alignItems: "center" }}>
-              <Input variant="green" value={apiKeyInput} onChange={e => setApiKeyInput(e.target.value)} placeholder="sk-..." style={{ flex: 1 }} />
+              <Input value={apiKeyInput} onChange={e => setApiKeyInput(e.target.value)} placeholder="sk-..." style={{ flex: 1 }} />
               <Button variant="primary" size="sm" onClick={handleSaveKey} loading={saving}>Save</Button>
               {apiKeyStatus === "set" && <Button variant="danger" size="sm" onClick={handleDeleteKey}>Delete</Button>}
             </div>

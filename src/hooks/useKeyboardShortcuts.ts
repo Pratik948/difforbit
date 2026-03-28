@@ -21,7 +21,7 @@ function isInputFocused(): boolean {
 }
 
 function isModalOpen(): boolean {
-  return !!document.querySelector('[data-matrixui-modal]')
+  return !!document.querySelector('[role="dialog"]')
 }
 
 export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
