@@ -78,8 +78,18 @@ export default function EngineSelector({ engine, onChange }: EngineSelectorProps
       </div>
 
       {engine.type === "claude_code" ? (
-        <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "11px", color: colors.text.tertiary, padding: space['2'], border: `1px solid ${colors.border.default}` }}>
-          Uses authenticated Claude Code CLI session. Ensure `claude` is in $PATH.
+        <div>
+          <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "11px", color: colors.text.tertiary, padding: space['2'], border: `1px solid ${colors.border.default}`, marginBottom: space['3'] }}>
+            Uses authenticated Claude Code CLI session. Ensure <code>claude</code> is in $PATH.
+          </div>
+          <div style={{ marginBottom: space['3'] }}>
+            <span style={labelStyle}>Model <span style={{ color: colors.text.tertiary, fontWeight: 400 }}>(optional — leave blank to use CLI default)</span></span>
+            <Input
+              value={engine.model}
+              onChange={e => onChange({ ...engine, model: e.target.value })}
+              placeholder="e.g. claude-opus-4-5-20251001"
+            />
+          </div>
         </div>
       ) : (
         <>
