@@ -72,7 +72,7 @@ pub fn start_scheduler(app: tauri::AppHandle) {
                 *LAST_RUN_AT.lock().unwrap() = Some(chrono::Local::now().to_rfc3339());
                 let app2 = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    let _ = run_review_session(app2, false).await;
+                    let _ = run_review_session(app2, false, false).await;
                 });
                 // Sleep 61s to avoid double-trigger in same minute
                 tokio::time::sleep(Duration::from_secs(61)).await;
@@ -91,7 +91,7 @@ pub fn get_next_run_time() -> Result<Option<String>, String> {
 #[tauri::command]
 pub async fn trigger_run_now_cmd(app: tauri::AppHandle) -> Result<(), String> {
     *LAST_RUN_AT.lock().unwrap() = Some(chrono::Local::now().to_rfc3339());
-    run_review_session(app, false).await
+    run_review_session(app, false, false).await
 }
 
 /// Check if a scheduled run was missed (for catch-up-on-wake)
@@ -127,7 +127,7 @@ pub fn check_catch_up(app: tauri::AppHandle) {
         if missed {
             let app2 = app.clone();
             tauri::async_runtime::spawn(async move {
-                let _ = run_review_session(app2, false).await;
+                let _ = run_review_session(app2, false, false).await;
             });
         }
     }

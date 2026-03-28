@@ -52,6 +52,8 @@ pub struct AppConfig {
     pub profiles: Vec<ReviewProfile>,
     pub show_diff: bool,
     pub diff_context: u32,
+    #[serde(default)]
+    pub onboarding_complete: bool,
 }
 
 impl Default for AppConfig {
@@ -76,6 +78,7 @@ impl Default for AppConfig {
             profiles: crate::commands::config::built_in_profiles(),
             show_diff: true,
             diff_context: 5,
+            onboarding_complete: false,
         }
     }
 }

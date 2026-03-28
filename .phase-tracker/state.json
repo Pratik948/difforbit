@@ -1,8 +1,8 @@
 {
   "project": "DiffOrbit",
-  "last_updated": "2026-03-27",
-  "current_phase": 6,
-  "current_task": "done",
+  "last_updated": "2026-03-28",
+  "current_phase": 7,
+  "current_task": "A1",
   "phases": {
     "1": { "name": "Foundation & Scaffold", "status": "completed" },
     "2": { "name": "Review Engine", "status": "completed" },
@@ -14,14 +14,37 @@
       "status": "completed",
       "tasks": {
         "6.1": { "name": "Report history stats", "status": "completed" },
-        "6.2": { "name": "App icon", "status": "skipped", "note": "Placeholder green dot in place — proper icon requires macOS design tools" },
+        "6.2": { "name": "App icon", "status": "skipped", "note": "Placeholder in place — proper icon requires macOS design tools" },
         "6.3": { "name": "Code signing", "status": "skipped", "note": "Requires Apple Developer cert" },
         "6.4": { "name": "Notarisation", "status": "skipped", "note": "Requires Apple cert + macOS" },
         "6.5": { "name": "DMG build", "status": "skipped", "note": "Requires macOS" },
         "6.6": { "name": "Auto-updater", "status": "skipped", "note": "Requires signed build + update server" },
-        "6.7": { "name": "Final QA", "status": "completed", "note": "0 TS errors, cargo check clean across all phases" }
+        "6.7": { "name": "Final QA", "status": "completed", "note": "0 TS errors, cargo check clean" }
+      }
+    },
+    "7": {
+      "name": "Feature Expansion (user-approved 2026-03-28)",
+      "status": "in_progress",
+      "tasks": {
+        "A1": { "name": "macOS notifications (tauri-plugin-notification)", "status": "pending" },
+        "A2": { "name": "Parallel PR review — JoinSet + Semaphore(3)", "status": "pending" },
+        "A3": { "name": "Large diff truncation (60K budget, per-file)", "status": "pending" },
+        "A4": { "name": "Re-review changed files (headSha diff + filter_diff_to_files)", "status": "pending" },
+        "B1": { "name": "Onboarding wizard — 6 steps", "status": "pending" },
+        "B2": { "name": "Keyboard shortcuts hook + ShortcutsHelpModal", "status": "pending" },
+        "B3": { "name": "Search & filter bar — Reports page", "status": "pending" },
+        "B4": { "name": "Export Markdown + PDF", "status": "pending" },
+        "C1": { "name": "Empty states — Dashboard + Reports", "status": "pending" },
+        "C2": { "name": "Re-review changed files button on PRCard", "status": "pending" },
+        "C3": { "name": "Notification permission banner", "status": "pending" }
       }
     }
   },
-  "summary": "All 6 phases implemented. Phases 1-5 fully complete. Phase 6 core feature (stats) done; distribution steps (signing/DMG/updater) deferred to macOS dev machine."
+  "decisions": [
+    { "timestamp": "2026-03-28", "decision": "Parallel review capped at 3 concurrent AI calls via Semaphore to avoid rate limits" },
+    { "timestamp": "2026-03-28", "decision": "PDF export uses window.print() — no extra library, print CSS handles layout" },
+    { "timestamp": "2026-03-28", "decision": "Onboarding gated on AppConfig.onboardingComplete bool; re-accessible via ? help icon" },
+    { "timestamp": "2026-03-28", "decision": "Diff truncation is per-file within 60K total budget; appends truncation notice to AI prompt" }
+  ],
+  "summary": "Phases 1-6 complete. Phase 7 (user-approved feature expansion) in progress: notifications, parallel review, diff truncation, re-review, onboarding wizard, keyboard shortcuts, search/filter, export MD/PDF, UX polish."
 }

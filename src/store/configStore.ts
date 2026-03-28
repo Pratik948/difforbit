@@ -10,6 +10,7 @@ const DEFAULT_CONFIG: AppConfig = {
   profiles: [],
   showDiff: true,
   diffContext: 5,
+  onboardingComplete: false,
 }
 
 interface ConfigStore {

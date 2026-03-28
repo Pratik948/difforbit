@@ -6,6 +6,8 @@ import VerdictBadge from "./VerdictBadge"
 import IssueCard from "./IssueCard"
 import { postInlineComments, approvePr, requestChanges } from "@/ipc/github"
 import type { CommentData } from "@/ipc/github"
+import { triggerReviewChangedFiles } from "@/ipc/review"
+import { prReviewToMarkdown, saveMarkdown, printAsPdf } from "@/utils/exportReview"
 
 interface PRCardProps {
   review: PRReview
@@ -83,6 +85,17 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
   }
 
   const selectedCount = review.issues.filter(i => i.selected).length
+
+  const handleExportMd = async () => {
+    const md = prReviewToMarkdown(review)
+    const filename = `difforbit-pr-${review.pr.number}-${review.pr.repo.replace("/", "-")}.md`
+    try {
+      await saveMarkdown(filename, md)
+      addToast({ variant: "success", message: `Saved ${filename} to Downloads` })
+    } catch (e) {
+      addToast({ variant: "error", message: String(e) })
+    }
+  }
 
   const titleStyle: React.CSSProperties = {
     fontFamily: "var(--font-display, 'Share Tech Mono', monospace)",
@@ -191,6 +204,21 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
         >
           Request Changes
         </Button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: space['2'] }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => triggerReviewChangedFiles().catch(() => {})}
+          >
+            ↻ Changed files
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleExportMd}>
+            ↓ MD
+          </Button>
+          <Button variant="ghost" size="sm" onClick={printAsPdf}>
+            ↓ PDF
+          </Button>
+        </div>
       </div>
 
       {/* Request changes modal */}
