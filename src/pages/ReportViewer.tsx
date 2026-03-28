@@ -22,32 +22,34 @@ export default function ReportViewer() {
   }, [id])
 
   const headerStyle: React.CSSProperties = {
-    fontFamily: "var(--font-display, 'Share Tech Mono', monospace)",
-    fontSize: "20px",
+    fontFamily: "var(--font-display, 'Inter', system-ui, sans-serif)",
+    fontSize: "22px",
+    fontWeight: "600",
     color: colors.text.primary,
     textShadow: textGlow.greenPrimary,
-    marginBottom: space['2'],
+    marginBottom: space["2"],
+    letterSpacing: "-0.01em",
   }
 
   if (loading) return (
-    <div style={{ padding: space['6'], color: colors.text.tertiary, fontFamily: "monospace", fontSize: "12px" }}>
-      Loading report…
+    <div style={{ padding: space["6"], color: colors.text.tertiary, fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px" }}>
+      Loading…
     </div>
   )
   if (!report) return (
-    <div style={{ padding: space['6'], color: colors.status.behind, fontFamily: "monospace", fontSize: "12px" }}>
+    <div style={{ padding: space["6"], color: colors.status.behind, fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px" }}>
       Report not found.
     </div>
   )
 
   return (
-    <div style={{ padding: space['6'], height: "100%", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: space['3'], marginBottom: space['4'] }}>
-        <Button variant="ghost" size="sm" onClick={() => navigate("/reports")}>← Reports</Button>
+    <div style={{ padding: space["6"], height: "100%", overflowY: "auto" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: space["3"], marginBottom: space["4"] }}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/reports")}>&larr; Reports</Button>
       </div>
-      <div style={headerStyle}>// REPORT</div>
-      <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "11px", color: colors.text.tertiary, marginBottom: space['6'] }}>
-        {new Date(report.runAt).toLocaleString()} · {report.reviews.length} PR(s) · {report.engine}
+      <h1 style={headerStyle}>Report</h1>
+      <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.tertiary, marginBottom: space["6"] }}>
+        {new Date(report.runAt).toLocaleString()} &middot; {report.reviews.length} PR{report.reviews.length !== 1 ? "s" : ""} &middot; {report.engine}
       </div>
 
       {report.reviews.map((review, i) => (
@@ -55,7 +57,7 @@ export default function ReportViewer() {
       ))}
 
       {report.reviews.length === 0 && (
-        <div style={{ fontFamily: "var(--font-body, monospace)", fontSize: "12px", color: colors.text.tertiary }}>
+        <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.tertiary }}>
           No reviews in this report.
         </div>
       )}
