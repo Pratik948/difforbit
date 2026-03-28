@@ -7,7 +7,6 @@ use crate::models::{
 use crate::commands::keychain::get_api_key_internal;
 use crate::diff::{extractor::extract_hunk_for_line, parser::parse_diff};
 use tauri::Emitter;
-use tauri_plugin_shell::ShellExt;
 use tracing::{error, info, warn};
 
 const MAX_DIFF_CHARS: usize = 60_000;
@@ -231,27 +230,33 @@ fn claude_bin() -> String {
 }
 
 async fn call_claude_code(
-    app: &tauri::AppHandle,
+    _app: &tauri::AppHandle,
     prompt: &str,
     engine: &EngineConfig,
 ) -> Result<String, String> {
-    let shell = app.shell();
+    use tokio::process::Command;
+    use std::process::Stdio;
+
     let claude = claude_bin();
     info!(claude = %claude, model = %engine.model, prompt_chars = prompt.len(), "calling claude CLI");
 
-    // --dangerously-skip-permissions is required for non-interactive (no-TTY) use;
-    // without it the CLI blocks on a consent prompt that never gets answered.
-    let mut args = vec!["-p", prompt, "--dangerously-skip-permissions"];
+    // Use tokio::process::Command directly so we can set stdin(Stdio::null()).
+    // The Tauri shell plugin leaves stdin as a connected pipe, which causes the
+    // claude CLI to block waiting for input even with --dangerously-skip-permissions.
+    let mut cmd = Command::new(&claude);
+    cmd.arg("-p").arg(prompt)
+       .arg("--dangerously-skip-permissions")
+       .stdin(Stdio::null())
+       .stdout(Stdio::piped())
+       .stderr(Stdio::piped());
+
     if !engine.model.trim().is_empty() {
-        args.extend(["--model", engine.model.trim()]);
+        cmd.arg("--model").arg(engine.model.trim());
     }
 
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(180),
-        shell
-            .command(&claude)
-            .args(&args)
-            .output(),
+        cmd.output(),
     )
     .await;
 
@@ -283,14 +288,21 @@ async fn call_claude_code(
 }
 
 #[tauri::command]
-pub async fn list_claude_models(app: tauri::AppHandle) -> Result<Vec<String>, String> {
-    let shell = app.shell();
+pub async fn list_claude_models(_app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    use tokio::process::Command;
+    use std::process::Stdio;
+
     let claude = claude_bin();
     info!(claude = %claude, "listing claude models");
 
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(15),
-        shell.command(&claude).args(["models", "--output", "json"]).output(),
+        Command::new(&claude)
+            .args(["models", "--output", "json"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output(),
     )
     .await;
 
