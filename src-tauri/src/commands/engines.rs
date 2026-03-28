@@ -238,11 +238,13 @@ async fn call_claude_code(
     let claude = claude_bin();
     info!(claude = %claude, prompt_chars = prompt.len(), "calling claude CLI");
 
+    // --dangerously-skip-permissions is required for non-interactive (no-TTY) use;
+    // without it the CLI blocks on a consent prompt that never gets answered.
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(180),
         shell
             .command(&claude)
-            .args(["-p", prompt])
+            .args(["-p", prompt, "--dangerously-skip-permissions"])
             .output(),
     )
     .await;
