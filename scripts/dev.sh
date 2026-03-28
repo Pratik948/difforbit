@@ -10,6 +10,12 @@
 
 set -euo pipefail
 
+# Ensure Rust/Cargo is on PATH (rustup installs to ~/.cargo/bin)
+# This is needed when the script is launched from npm or a GUI terminal
+# that hasn't sourced ~/.cargo/env
+[[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+export PATH="$HOME/.cargo/bin:$PATH"
+
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
 ok()   { echo -e "${GREEN}  ✓${NC} $*"; }
 info() { echo -e "${CYAN}  →${NC} $*"; }
