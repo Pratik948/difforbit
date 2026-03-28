@@ -7,7 +7,15 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "scripts/dev.sh",
+    "tauri:build": "scripts/build.sh",
+    "check": "scripts/check.sh",
+    "check:ts": "tsc --noEmit",
+    "check:rust": "scripts/check.sh --rust-only",
+    "clean": "scripts/clean.sh",
+    "clean:all": "scripts/clean.sh --all",
+    "setup": "scripts/setup.sh"
   },
   "dependencies": {
     "react": "^18.3.1",

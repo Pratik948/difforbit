@@ -6,7 +6,6 @@ use crate::models::{
 };
 use crate::commands::keychain::get_api_key_internal;
 use crate::diff::{extractor::extract_hunk_for_line, parser::parse_diff};
-use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 
 fn build_prompt(pr: &PullRequest, profile: &ReviewProfile, engine_label: &str) -> String {

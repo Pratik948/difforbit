@@ -139,6 +139,7 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool) -> Result<()
 
 #[tauri::command]
 pub fn list_reports(app: tauri::AppHandle) -> Result<Vec<ReportMeta>, String> {
+
     let dir = reports_dir(&app);
     if !dir.exists() { return Ok(vec![]); }
 
@@ -174,7 +175,4 @@ pub fn load_report(app: tauri::AppHandle, id: String) -> Result<Report, String> 
 pub fn delete_report(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let path = reports_dir(&app).join(format!("{id}.json"));
     std::fs::remove_file(&path).map_err(|e| e.to_string())
-}
-
-    Ok(None) // wired up in Phase 4
 }
