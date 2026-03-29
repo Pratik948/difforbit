@@ -10,11 +10,14 @@ import Reports from "@/pages/Reports"
 import ReportViewer from "@/pages/ReportViewer"
 import Configuration from "@/pages/Configuration"
 import Profiles from "@/pages/Profiles"
+import { listReports } from "@/ipc/review"
+import { useReviewStore } from "@/store/reviewStore"
 
 export default function App() {
   const { loadConfig } = useConfigStore()
   const theme = useConfigStore(s => s.config.theme)
   useTheme(theme ?? "shadcn-light")
+  const setLastReportId = useReviewStore(s => s.setLastReportId)
 
   // Global event listeners — must be at App level so events are captured
   // even when the user is not on the Dashboard page (e.g. tray Run Now).
@@ -22,6 +25,9 @@ export default function App() {
 
   useEffect(() => {
     loadConfig()
+    listReports()
+      .then(reports => { if (reports.length > 0) setLastReportId(reports[0].id) })
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const layoutStyle: React.CSSProperties = {

@@ -85,7 +85,7 @@ export default function Dashboard() {
       <h1 style={headerStyle}>Dashboard</h1>
 
       {/* Notification banner */}
-      {!notifBannerDismissed && !hasRuns && (
+      {!notifBannerDismissed && !lastRun && (
         <div style={{
           display: "flex",
           justifyContent: "space-between",
@@ -168,7 +168,7 @@ export default function Dashboard() {
       </Panel>
 
       {/* Empty state / help */}
-      {!hasRuns && runStatus === "idle" ? (
+      {!lastRun && runStatus === "idle" ? (
         <Panel style={{ padding: space["6"], textAlign: "center" as const }}>
           <div style={{
             fontFamily: "var(--font-display, system-ui, sans-serif)",

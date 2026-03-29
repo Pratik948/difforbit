@@ -27,6 +27,18 @@ function isActioned(review: PRReview): boolean {
   }
 }
 
+function getActionedAt(review: PRReview): string | null {
+  try {
+    const raw = localStorage.getItem(actionedKey(review))
+    if (!raw) return null
+    const { headSha, at } = JSON.parse(raw) as { headSha: string; at: string }
+    if (headSha !== review.commitSha) return null
+    return at
+  } catch {
+    return null
+  }
+}
+
 export default function PRCard({ review: initialReview }: PRCardProps) {
   const [review, setReview] = useState(initialReview)
   const [positiveOpen, setPositiveOpen] = useState(false)
@@ -37,6 +49,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
   const [exportingMd, setExportingMd] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [actioned, setActioned] = useState(() => isActioned(initialReview))
+  const actionedAt = actioned ? getActionedAt(review) : null
   const { addToast } = useToast()
 
   const markActioned = () => {
@@ -236,6 +249,16 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           <Button variant="ghost" size="sm" onClick={handleExportPdf} loading={exportingPdf}>Export PDF</Button>
         </div>
       </div>
+      {actioned && actionedAt && (
+        <div style={{
+          marginTop: space["2"],
+          fontFamily: "var(--font-body, system-ui, sans-serif)",
+          fontSize: "11px",
+          color: colors.text.ghost,
+        }}>
+          Reviewed on {new Date(actionedAt).toLocaleString()}
+        </div>
+      )}
 
       {/* Request changes modal */}
       <Modal open={requestModalOpen} onClose={() => setRequestModalOpen(false)} title="Request Changes" size="sm">
