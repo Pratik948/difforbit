@@ -1,7 +1,8 @@
 // Theme definitions — injects --do-* CSS vars into :root.
 // All UI components reference var(--do-*) so themes work natively.
 
-export type ThemeId = "matrix" | "shadcn-dark" | "shadcn-light"
+export type BuiltInThemeId = "matrix" | "shadcn-dark" | "shadcn-light"
+export type ThemeId = string
 
 export interface ThemeMeta {
   id: ThemeId
@@ -10,7 +11,7 @@ export interface ThemeMeta {
   preview: { bg: string; surface: string; text: string; accent: string }
 }
 
-interface ThemeVars {
+export interface ThemeVars {
   // Backgrounds
   "--do-bg-base": string
   "--do-bg-surface": string
@@ -46,7 +47,7 @@ interface ThemeVars {
   "--font-code": string
 }
 
-const THEMES: Record<ThemeId, ThemeVars> = {
+const THEMES: Record<BuiltInThemeId, ThemeVars> = {
   matrix: {
     "--do-bg-base":          "#000000",
     "--do-bg-surface":       "#000a00",
@@ -156,14 +157,41 @@ export const THEME_META: ThemeMeta[] = [
   },
 ]
 
+export interface CustomThemeMeta {
+  id: string
+  label: string
+  description: string
+  preview: { bg: string; surface: string; text: string; accent: string }
+  vars: ThemeVars
+}
+
+const CUSTOM_THEMES_KEY = "difforbit-custom-themes"
+
+export function loadCustomThemes(): CustomThemeMeta[] {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY) ?? "[]") }
+  catch { return [] }
+}
+
+export function saveCustomTheme(theme: CustomThemeMeta): void {
+  const rest = loadCustomThemes().filter(t => t.id !== theme.id)
+  localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify([...rest, theme]))
+}
+
+export function deleteCustomTheme(id: string): void {
+  localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(loadCustomThemes().filter(t => t.id !== id)))
+}
+
+export function getBuiltInVars(id: BuiltInThemeId): ThemeVars {
+  return THEMES[id]
+}
+
 export function applyTheme(id: ThemeId) {
-  const vars = THEMES[id]
+  const vars: ThemeVars | undefined = THEMES[id as BuiltInThemeId] ?? loadCustomThemes().find(t => t.id === id)?.vars
+  if (!vars) return
   const root = document.documentElement
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(key, value)
   }
   root.setAttribute("data-theme", id)
-
-  // Remove legacy MatrixUI !important override sheet if present
   document.getElementById("do-theme-overrides")?.remove()
 }

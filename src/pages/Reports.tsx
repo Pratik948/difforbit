@@ -68,9 +68,19 @@ export default function Reports() {
   const [search, setSearch] = useState("")
   const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>("ALL")
   const [dateFilter, setDateFilter] = useState<DateFilter>("ALL")
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
   const { addToast } = useToast()
   const searchFocusRef = useRef<HTMLInputElement | null>(null)
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -117,7 +127,15 @@ export default function Reports() {
     if (!isWithinDate(meta.runAt, dateFilter)) return false
     if (search) {
       const q = search.toLowerCase()
-      return meta.engine.toLowerCase().includes(q) || meta.runAt.toLowerCase().includes(q)
+      if (meta.engine.toLowerCase().includes(q) || meta.runAt.toLowerCase().includes(q)) return true
+      // Also search PR titles and repo names from full report data
+      const fullReport = allReports.find(r => r.id === meta.id)
+      if (fullReport) {
+        return fullReport.reviews.some(rv =>
+          rv.pr.title.toLowerCase().includes(q) || rv.pr.repo.toLowerCase().includes(q)
+        )
+      }
+      return false
     }
     return true
   })
@@ -256,21 +274,78 @@ export default function Reports() {
             <span style={{ flex: 2 }}>Run at</span>
             <span style={{ flex: 1 }}>PRs</span>
             <span style={{ flex: 2 }}>Engine</span>
-            <span style={{ width: "120px" }}></span>
+            <span style={{ width: "160px" }}></span>
           </div>
-          {visibleMetas.map(r => (
-            <div key={r.id} style={rowStyle}>
-              <span style={{ flex: 2, color: colors.text.secondary }}>
-                {new Date(r.runAt).toLocaleString()}
-              </span>
-              <span style={{ flex: 1, color: colors.status.synced }}>{r.prCount}</span>
-              <span style={{ flex: 2, color: colors.text.tertiary }}>{r.engine}</span>
-              <div style={{ display: "flex", gap: space["2"], width: "120px" }}>
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/reports/${r.id}`)}>View</Button>
-                <Button variant="danger" size="sm" onClick={() => setConfirmDelete(r.id)}>Delete</Button>
-              </div>
-            </div>
-          ))}
+          {visibleMetas.map(r => {
+            const fullReport = allReports.find(rep => rep.id === r.id)
+            const expanded = expandedIds.has(r.id)
+            return (
+              <React.Fragment key={r.id}>
+                <div style={rowStyle}>
+                  <span style={{ flex: 2, color: colors.text.secondary }}>
+                    {new Date(r.runAt).toLocaleString()}
+                  </span>
+                  <span style={{ flex: 1, color: colors.status.synced }}>{r.prCount}</span>
+                  <span style={{ flex: 2, color: colors.text.tertiary }}>{r.engine}</span>
+                  <div style={{ display: "flex", gap: space["2"], width: "160px" }}>
+                    {fullReport && fullReport.reviews.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={() => toggleExpanded(r.id)}>
+                        {expanded ? "▼ PRs" : "▶ PRs"}
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/reports/${r.id}`)}>View</Button>
+                    <Button variant="danger" size="sm" onClick={() => setConfirmDelete(r.id)}>Delete</Button>
+                  </div>
+                </div>
+                {expanded && fullReport && (
+                  <div style={{
+                    paddingLeft: space["6"],
+                    paddingRight: space["4"],
+                    paddingBottom: space["3"],
+                    borderBottom: `1px solid ${colors.border.default}`,
+                    background: `${colors.bg.elevated}44`,
+                  }}>
+                    {fullReport.reviews.map(rv => {
+                      const verdictColor = rv.verdict === "APPROVE"
+                        ? colors.status.synced
+                        : rv.verdict === "REQUEST_CHANGES"
+                        ? colors.status.behind
+                        : colors.status.modified
+                      return (
+                        <div
+                          key={rv.pr.number}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: space["3"],
+                            fontFamily: "var(--font-body, system-ui, sans-serif)",
+                            fontSize: "12px",
+                            padding: `${space["1"]} 0`,
+                            borderBottom: `1px solid ${colors.border.subtle}`,
+                          }}
+                        >
+                          <span style={{ color: colors.text.ghost, fontFamily: "var(--font-code, monospace)" }}>#{rv.pr.number}</span>
+                          <span style={{ color: colors.text.secondary, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rv.pr.title}</span>
+                          <span style={{ color: colors.text.tertiary }}>{rv.pr.repo}</span>
+                          <span style={{
+                            color: verdictColor,
+                            border: `1px solid ${verdictColor}44`,
+                            borderRadius: "3px",
+                            padding: "1px 6px",
+                            fontSize: "10px",
+                            fontWeight: "600",
+                            whiteSpace: "nowrap" as const,
+                          }}>
+                            {rv.verdict}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </React.Fragment>
+            )
+          })}
         </Panel>
       )}
 
