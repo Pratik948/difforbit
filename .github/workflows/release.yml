@@ -44,20 +44,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # This flag tells the action to run 'tauri build --target universal'
-          args: --target universal
+          args: --target universal-apple-darwin
 
       # ── Collect SHA256 for Homebrew ────────────────────────────────────────
       - name: Calculate Checksum
         id: checksum
         run: |
-          # The action outputs the created artifacts; we find the DMG in the target folder
-          DMG=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -n 1)
+          # Universal builds are stored in this specific target subfolder
+          BUNDLE_DIR="src-tauri/target/universal-apple-darwin/release/bundle"
+          DMG=$(find "$BUNDLE_DIR/dmg" -name "*.dmg" | head -n 1)
+          
           if [[ -n "$DMG" ]]; then
             SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
             echo "dmg_path=$DMG" >> "$GITHUB_OUTPUT"
             echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
-            echo "Final SHA256 for Homebrew: $SHA256"
+          else
+            echo "Error: DMG not found in $BUNDLE_DIR/dmg"
+            exit 1
           fi
 
       # ── Create GitHub Release ──────────────────────────────────────────────
