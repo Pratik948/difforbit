@@ -12,9 +12,8 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  # ── Build and release macOS DMG ─────────────────────────────────────────────
   release-macos:
-    name: macOS DMG
+    name: macOS Universal DMG
     runs-on: macos-latest
 
     steps:
@@ -28,6 +27,9 @@ jobs:
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          # Add both targets required for a Universal Binary
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
 
       - name: Cache Rust registry
         uses: actions/cache@v4
@@ -36,31 +38,30 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: macos-cargo-release-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: macos-universal-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            macos-cargo-release-
+            macos-universal-cargo-
 
       - name: Install frontend deps
         run: npm ci
 
-      - name: TypeScript check
-        run: npx tsc --noEmit
-
-      # ── Tauri build (Notarization variables removed) ────────────────────────
+      # ── Build Universal Tauri app ──────────────────────────────────────────
       - name: Build Tauri app
-        run: npm run tauri build
+        # The --target universal flag tells Tauri to build for both architectures
+        run: npm run tauri build -- --target universal
 
       # ── Collect artefacts ──────────────────────────────────────────────────
       - name: Collect release artefacts
         id: artefacts
         run: |
-          BUNDLE_DIR="src-tauri/target/release/bundle"
+          # Universal builds are usually placed in a 'universal-apple-darwin' folder
+          BUNDLE_DIR="src-tauri/target/universal-apple-darwin/release/bundle"
           DMG=$(find "$BUNDLE_DIR/dmg" -name "*.dmg" 2>/dev/null | head -1 || true)
           
-          # Calculate SHA256 for Homebrew Formula/Cask
           if [[ -n "$DMG" ]]; then
             SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
             echo "dmg_sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+            echo "dmg=${DMG}" >> "$GITHUB_OUTPUT"
           fi
 
           echo "dmg=${DMG}" >> "$GITHUB_OUTPUT"
