@@ -50,26 +50,29 @@ pub fn init(log_dir: &std::path::Path) -> LogGuard {
         .with_target(true)
         .with_level(true);
 
-    // Stderr layer — only in debug builds; silenced in release
-    #[cfg(debug_assertions)]
-    let stderr_layer = Some(
-        fmt::layer()
-            .with_writer(std::io::stderr)
-            .with_ansi(true)
-            .with_timer(ChronoLocal::new("%H:%M:%S%.3f".into()))
-            .with_target(true),
-    );
-    #[cfg(not(debug_assertions))]
-    let stderr_layer: Option<fmt::Layer<_, _, _, _>> = None;
-
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"));
 
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(file_layer)
-        .with(stderr_layer)
-        .init();
+    #[cfg(debug_assertions)]
+    {
+        let stderr_layer = fmt::layer()
+            .with_writer(std::io::stderr)
+            .with_ansi(true)
+            .with_timer(ChronoLocal::new("%H:%M:%S%.3f".into()))
+            .with_target(true);
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(file_layer)
+            .with(stderr_layer)
+            .init();
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(file_layer)
+            .init();
+    }
 
     tracing::info!(
         log_dir = %log_dir.display(),
