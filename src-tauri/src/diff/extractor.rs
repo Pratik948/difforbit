@@ -84,3 +84,141 @@ fn parse_new_start(hunk: &str) -> Option<u32> {
     let num = plus.split(',').next()?.split(' ').next()?;
     num.parse().ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // A minimal unified diff with two files
+    const DIFF: &str = "\
+diff --git a/lib/main.dart b/lib/main.dart
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -1,6 +1,7 @@
+ void main() {
+   runApp(MyApp());
++  print('debug');
+ }
+
+ class MyApp {
+
+diff --git a/lib/other.dart b/lib/other.dart
+--- a/lib/other.dart
++++ b/lib/other.dart
+@@ -10,4 +10,4 @@
+ // comment
+-  old();
++  newCall();
+ }
+";
+
+    // Diff containing an empty context line (the regression case)
+    const DIFF_WITH_EMPTY_LINE: &str = "\
+diff --git a/a.dart b/a.dart
+--- a/a.dart
++++ b/a.dart
+@@ -1,4 +1,4 @@
+ line one
+
++added after blank
+ line three
+";
+
+    #[test]
+    fn empty_diff_returns_empty_vec() {
+        let result = extract_hunk_for_line("", "lib/main.dart", 3, 2);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn wrong_filename_returns_empty_vec() {
+        let result = extract_hunk_for_line(DIFF, "nonexistent.dart", 3, 2);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn added_line_is_found_and_has_correct_type() {
+        let result = extract_hunk_for_line(DIFF, "lib/main.dart", 3, 0);
+        // With context=0 we get exactly 1 line: the add at new line 3
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].r#type, "add");
+        assert_eq!(result[0].text, "  print('debug');");
+    }
+
+    #[test]
+    fn context_lines_included_around_target() {
+        let result = extract_hunk_for_line(DIFF, "lib/main.dart", 3, 1);
+        // 1 context before + target + 1 context after = 3 lines
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[1].r#type, "add"); // target in middle
+    }
+
+    #[test]
+    fn second_file_extracted_correctly() {
+        // lib/other.dart: @@ -10,4 +10,4 @@ — "newCall()" is added at new line 11
+        let result = extract_hunk_for_line(DIFF, "lib/other.dart", 11, 0);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].r#type, "add");
+        assert_eq!(result[0].text, "  newCall();");
+    }
+
+    #[test]
+    fn context_at_boundary_does_not_panic() {
+        // target line 1 with context 5 — start should clamp to 0
+        let result = extract_hunk_for_line(DIFF, "lib/main.dart", 1, 5);
+        assert!(!result.is_empty()); // should not panic or crash
+    }
+
+    #[test]
+    fn empty_context_line_does_not_panic() {
+        // Regression: blank context lines (empty string after stripping " ") must not panic
+        let result = extract_hunk_for_line(DIFF_WITH_EMPTY_LINE, "a.dart", 3, 2);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn empty_context_line_has_empty_text() {
+        let result = extract_hunk_for_line(DIFF_WITH_EMPTY_LINE, "a.dart", 2, 3);
+        let empty_line = result.iter().find(|l| l.r#type == "context" && l.text.is_empty());
+        assert!(empty_line.is_some(), "expected a context line with empty text");
+    }
+
+    #[test]
+    fn hunk_header_included_as_hunk_type() {
+        // extract with enough context to capture the @@ line
+        let result = extract_hunk_for_line(DIFF, "lib/main.dart", 1, 5);
+        let hunk_lines: Vec<_> = result.iter().filter(|l| l.r#type == "hunk").collect();
+        assert!(!hunk_lines.is_empty(), "expected at least one hunk-type line");
+    }
+
+    // ── filter_diff_to_files ─────────────────────────────────────────────────
+
+    #[test]
+    fn filter_includes_only_specified_file() {
+        let files = vec!["lib/main.dart".to_string()];
+        let filtered = filter_diff_to_files(DIFF, &files);
+        assert!(filtered.contains("lib/main.dart"));
+        assert!(!filtered.contains("lib/other.dart"));
+    }
+
+    #[test]
+    fn filter_includes_multiple_files() {
+        let files = vec!["lib/main.dart".to_string(), "lib/other.dart".to_string()];
+        let filtered = filter_diff_to_files(DIFF, &files);
+        assert!(filtered.contains("lib/main.dart"));
+        assert!(filtered.contains("lib/other.dart"));
+    }
+
+    #[test]
+    fn filter_returns_empty_for_no_match() {
+        let files = vec!["does_not_exist.dart".to_string()];
+        let filtered = filter_diff_to_files(DIFF, &files);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn filter_empty_diff_returns_empty() {
+        let filtered = filter_diff_to_files("", &["any.dart".to_string()]);
+        assert!(filtered.is_empty());
+    }
+}

@@ -11,6 +11,9 @@
     "tauri:dev": "scripts/dev.sh",
     "tauri:build": "scripts/build.sh",
     "check": "scripts/check.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "check:ts": "tsc --noEmit",
     "check:rust": "scripts/check.sh --rust-only",
     "clean": "scripts/clean.sh",
@@ -37,11 +40,17 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/ui": "^4.1.2",
+    "jsdom": "^29.0.1",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^4.1.2"
   }
 }
