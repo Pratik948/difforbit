@@ -31,44 +31,34 @@ jobs:
           # Add both targets required for a Universal Binary
           targets: x86_64-apple-darwin, aarch64-apple-darwin
 
-      - name: Cache Rust registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: macos-universal-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            macos-universal-cargo-
-
       - name: Install frontend deps
         run: npm ci
 
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
       # ── Build Universal Tauri app ──────────────────────────────────────────
       - name: Build Tauri app
-        # The --target universal flag tells Tauri to build for both architectures
-        run: npm run tauri build -- --target universal
+        uses: tauri-apps/tauri-action@v0
+        id: tauri_build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This flag tells the action to run 'tauri build --target universal'
+          args: --target universal
 
-      # ── Collect artefacts ──────────────────────────────────────────────────
-      - name: Collect release artefacts
-        id: artefacts
+      # ── Collect SHA256 for Homebrew ────────────────────────────────────────
+      - name: Calculate Checksum
+        id: checksum
         run: |
-          # Universal builds are usually placed in a 'universal-apple-darwin' folder
-          BUNDLE_DIR="src-tauri/target/universal-apple-darwin/release/bundle"
-          DMG=$(find "$BUNDLE_DIR/dmg" -name "*.dmg" 2>/dev/null | head -1 || true)
-          
+          # The action outputs the created artifacts; we find the DMG in the target folder
+          DMG=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -n 1)
           if [[ -n "$DMG" ]]; then
             SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
-            echo "dmg_sha256=${SHA256}" >> "$GITHUB_OUTPUT"
-            echo "dmg=${DMG}" >> "$GITHUB_OUTPUT"
+            echo "dmg_path=$DMG" >> "$GITHUB_OUTPUT"
+            echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+            echo "Final SHA256 for Homebrew: $SHA256"
           fi
-
-          echo "dmg=${DMG}" >> "$GITHUB_OUTPUT"
-
-          echo "=== Release artefacts ==="
-          [[ -n "$DMG" ]] && echo "  DMG:  $DMG ($(du -sh "$DMG" | cut -f1))"
-          [[ -n "$SHA256" ]] && echo "  SHA256: $SHA256"
 
       # ── Create GitHub Release ──────────────────────────────────────────────
       - name: Create GitHub Release
@@ -79,17 +69,17 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: |
-            ${{ steps.artefacts.outputs.dmg }}
+            ${{ steps.checksum.outputs.dmg_path }}
           body: |
-            ## DiffOrbit ${{ github.ref_name }}
+            ## DiffOrbit ${{ github.ref_name }} (Universal)
 
-            ### Homebrew Installation
+            ### Installation via Homebrew
             ```bash
             brew tap Pratik948/difforbit
             brew install --cask difforbit
             ```
-            *Note: As this build is not notarized, you may need to allow it in System Settings > Privacy & Security upon first launch.*
 
-            ### Manual Installation
-            1. Download `DiffOrbit_*.dmg`
-            2. Open the DMG and drag DiffOrbit to Applications
+            ### Details
+            - **Architecture:** Universal (Intel + Apple Silicon)
+            - **SHA256:** `${{ steps.checksum.outputs.sha256 }}`
+            - **Note:** This build is not notarized. Right-click and select "Open" on first launch.
