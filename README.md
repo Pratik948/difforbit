@@ -6,16 +6,6 @@ DiffOrbit lives in your menu bar and automatically reviews GitHub pull requests 
 
 ---
 
-## Screenshots
-
-> Three themes available: Matrix (dark green terminal), Shadcn Dark, Shadcn Light — switchable from Settings.
-
-| Dashboard | Report Viewer | Configuration |
-|-----------|---------------|---------------|
-| Run Now + live progress bar | PRCard with verdict, issues, inline diff | Engine selector, repo list, schedule |
-
----
-
 ## Features
 
 - **Menu-bar app** — lives in the macOS tray, never in the Dock
