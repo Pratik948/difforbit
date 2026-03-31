@@ -44,7 +44,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
           args: --target universal-apple-darwin
 
       # ── Collect SHA256 for Homebrew ────────────────────────────────────────
