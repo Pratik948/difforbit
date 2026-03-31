@@ -4,8 +4,9 @@
 
 DiffOrbit lives in your menu bar and automatically reviews GitHub pull requests using AI — Anthropic Claude, any OpenAI-compatible endpoint, or your local Claude Code CLI session. Reviews are structured, inline-commented, and stored as local JSON reports you can browse at any time.
 
+[![CI](https://github.com/Pratik948/difforbit/actions/workflows/ci.yml/badge.svg?event=check_run)](https://github.com/Pratik948/difforbit/actions/workflows/ci.yml)
+[![Release](https://github.com/Pratik948/difforbit/actions/workflows/release.yml/badge.svg?event=release)](https://github.com/Pratik948/difforbit/actions/workflows/release.yml)
 ---
-
 ## Features
 
 - **Menu-bar app** — lives in the macOS tray, never in the Dock
