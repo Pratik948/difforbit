@@ -28,7 +28,6 @@ jobs:
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Add both targets required for a Universal Binary
           targets: x86_64-apple-darwin, aarch64-apple-darwin
 
       - name: Install frontend deps
@@ -37,42 +36,49 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
-      # ── Build Universal Tauri app ──────────────────────────────────────────
-      - name: Build Tauri app
+      # ── Build + upload DMG as a draft release ──────────────────────────────
+      - name: Build Tauri app (draft release)
         uses: tauri-apps/tauri-action@v0
         id: tauri_build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tagName: ${{ github.ref_name }}
+          releaseName: DiffOrbit ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           args: --target universal-apple-darwin
 
-      # ── Collect SHA256 for Homebrew ────────────────────────────────────────
-      - name: Calculate Checksum
+      # ── Compute SHA256 from the artifact tauri-action built ────────────────
+      - name: Calculate SHA256
         id: checksum
         run: |
-          # Universal builds are stored in this specific target subfolder
-          BUNDLE_DIR="src-tauri/target/universal-apple-darwin/release/bundle"
-          DMG=$(find "$BUNDLE_DIR/dmg" -name "*.dmg" | head -n 1)
-          
-          if [[ -n "$DMG" ]]; then
-            SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
-            echo "dmg_path=$DMG" >> "$GITHUB_OUTPUT"
-            echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
-          else
-            echo "Error: DMG not found in $BUNDLE_DIR/dmg"
+          # tauri-action outputs a JSON array of artifact paths
+          ARTIFACT_PATHS='${{ steps.tauri_build.outputs.artifactPaths }}'
+          DMG=$(echo "$ARTIFACT_PATHS" | tr -d '[]"' | tr ',' '\n' | grep '\.dmg$' | head -n 1)
+
+          if [[ -z "$DMG" ]]; then
+            # fallback: scan the build dir directly
+            DMG=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -n 1)
+          fi
+
+          if [[ -z "$DMG" ]]; then
+            echo "Error: DMG not found"
             exit 1
           fi
 
-      # ── Create GitHub Release ──────────────────────────────────────────────
-      - name: Create GitHub Release
+          SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "dmg_name=$(basename "$DMG")" >> "$GITHUB_OUTPUT"
+
+      # ── Publish the draft: add release body with SHA256 ───────────────────
+      - name: Publish release with SHA256
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
           name: DiffOrbit ${{ github.ref_name }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: true
-          files: |
-            ${{ steps.checksum.outputs.dmg_path }}
           body: |
             ## DiffOrbit ${{ github.ref_name }} (Universal)
 
@@ -86,3 +92,8 @@ jobs:
             - **Architecture:** Universal (Intel + Apple Silicon)
             - **SHA256:** `${{ steps.checksum.outputs.sha256 }}`
             - **Note:** This build is not notarized. Right-click and select "Open" on first launch.
+
+            ### Homebrew cask snippet
+            ```ruby
+            sha256 "${{ steps.checksum.outputs.sha256 }}"
+            ```
