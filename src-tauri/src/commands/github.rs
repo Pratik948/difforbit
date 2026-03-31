@@ -241,6 +241,75 @@ pub async fn approve_pr(
 }
 
 #[tauri::command]
+pub async fn approve_pr_with_body(
+    app: tauri::AppHandle,
+    repo: String,
+    number: u32,
+    body: String,
+) -> Result<(), String> {
+    let shell = app.shell();
+    let gh = gh_bin();
+    let output = shell
+        .command(&gh)
+        .args([
+            "pr", "review", &number.to_string(),
+            "--repo", &repo,
+            "--approve",
+            "--body", &body,
+        ])
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
+    }
+}
+
+/// Fetch a PR by number (title, author, url, etc.) without the diff.
+/// Used by review_specific_pr.
+pub async fn fetch_pr_info(
+    app: &tauri::AppHandle,
+    repo: &str,
+    number: u32,
+) -> Result<crate::models::pr::PullRequest, String> {
+    let shell = app.shell();
+    let gh = gh_bin();
+    let output = shell
+        .command(&gh)
+        .args([
+            "pr", "view", &number.to_string(),
+            "--repo", repo,
+            "--json", "number,title,author,url,updatedAt,headRefOid,files",
+        ])
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    // Re-use the same private structs defined at module level
+    let raw = String::from_utf8_lossy(&output.stdout);
+    let item: GhPrItem = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+
+    Ok(crate::models::pr::PullRequest {
+        number: item.number,
+        title: item.title,
+        author: item.author.map(|a| a.login).unwrap_or_default(),
+        url: item.url,
+        repo: repo.to_string(),
+        updated_at: item.updated_at,
+        diff: String::new(),
+        files: item.files.unwrap_or_default().into_iter().map(|f| f.path).collect(),
+        head_sha: item.head_ref_oid,
+    })
+}
+
+#[tauri::command]
 pub async fn request_changes(
     app: tauri::AppHandle,
     repo: String,

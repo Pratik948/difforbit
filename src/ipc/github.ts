@@ -14,6 +14,10 @@ export async function approvePr(repo: string, number: number): Promise<void> {
   return invoke<void>("approve_pr", { repo, number })
 }
 
+export async function approvePrWithBody(repo: string, number: number, body: string): Promise<void> {
+  return invoke<void>("approve_pr_with_body", { repo, number, body })
+}
+
 export async function requestChanges(repo: string, number: number, body: string): Promise<void> {
   return invoke<void>("request_changes", { repo, number, body })
 }

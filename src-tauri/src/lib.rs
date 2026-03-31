@@ -87,6 +87,7 @@ pub fn run() {
             commands::github::fetch_pr_diff,
             commands::github::post_inline_comments,
             commands::github::approve_pr,
+            commands::github::approve_pr_with_body,
             commands::github::request_changes,
             // engines
             commands::engines::list_claude_models,
@@ -98,6 +99,7 @@ pub fn run() {
             commands::review::trigger_run_now,
             commands::review::trigger_review_changed_files,
             commands::review::trigger_force_run,
+            commands::review::review_specific_pr,
             commands::review::list_reports,
             commands::review::load_report,
             commands::review::delete_report,

@@ -4,7 +4,7 @@ import { colors, space, textGlow } from "@/styles/tokens"
 import { Panel, Button } from "@/components/ui"
 import { useReviewStore } from "@/store/reviewStore"
 import { useScheduler } from "@/hooks/useScheduler"
-import { triggerRunNow } from "@/ipc/review"
+import { triggerRunNow, reviewSpecificPr } from "@/ipc/review"
 import { useConfigStore } from "@/store/configStore"
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard"
 import { ShortcutsHelpModal } from "@/components/ui/ShortcutsHelpModal"
@@ -25,7 +25,44 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [showHelp, setShowHelp] = useState(false)
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
+  const [specificPrInput, setSpecificPrInput] = useState("")
+  const [specificPrReviewing, setSpecificPrReviewing] = useState(false)
+  const [specificPrError, setSpecificPrError] = useState<string | null>(null)
   useHelpShortcut(() => setShowHelp(true))
+
+  // Parse "owner/repo#123", "owner/repo 123", or GitHub URL
+  const parseSpecificPr = (input: string): { repo: string; number: number } | null => {
+    const trimmed = input.trim()
+    // GitHub URL: https://github.com/owner/repo/pull/123
+    const urlMatch = trimmed.match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/)
+    if (urlMatch) return { repo: urlMatch[1], number: parseInt(urlMatch[2], 10) }
+    // owner/repo#123
+    const hashMatch = trimmed.match(/^([^/]+\/[^/#\s]+)#(\d+)$/)
+    if (hashMatch) return { repo: hashMatch[1], number: parseInt(hashMatch[2], 10) }
+    // owner/repo 123
+    const spaceMatch = trimmed.match(/^([^/]+\/[^/\s]+)\s+(\d+)$/)
+    if (spaceMatch) return { repo: spaceMatch[1], number: parseInt(spaceMatch[2], 10) }
+    return null
+  }
+
+  const handleReviewSpecific = async () => {
+    setSpecificPrError(null)
+    const parsed = parseSpecificPr(specificPrInput)
+    if (!parsed) {
+      setSpecificPrError("Enter a GitHub URL, owner/repo#123, or owner/repo 123")
+      return
+    }
+    setSpecificPrReviewing(true)
+    try {
+      const reportId = await reviewSpecificPr(parsed.repo, parsed.number)
+      setSpecificPrInput("")
+      if (reportId) navigate(`/reports/${reportId}`)
+    } catch (e) {
+      setSpecificPrError(String(e))
+    } finally {
+      setSpecificPrReviewing(false)
+    }
+  }
 
   const handleRunNow = async () => {
     try { await triggerRunNow() } catch (e) { console.error(e) }
@@ -160,11 +197,46 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div style={{ marginTop: space["3"] }}>
+        <div style={{ marginTop: space["3"], display: "flex", gap: space["2"] }}>
           <Button variant="primary" onClick={handleRunNow} loading={runStatus === "running"}>
             Run Now
           </Button>
         </div>
+      </Panel>
+
+      {/* Review specific PR */}
+      <Panel style={{ padding: space["4"], marginBottom: space["4"] }}>
+        <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "12px", color: colors.text.tertiary, marginBottom: space["2"], letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: "600" }}>
+          Review a specific PR
+        </div>
+        <div style={{ display: "flex", gap: space["2"], alignItems: "flex-start", flexWrap: "wrap" as const }}>
+          <input
+            value={specificPrInput}
+            onChange={e => { setSpecificPrInput(e.target.value); setSpecificPrError(null) }}
+            onKeyDown={e => e.key === "Enter" && handleReviewSpecific()}
+            placeholder="GitHub URL  or  owner/repo#123"
+            style={{
+              flex: 1,
+              minWidth: "240px",
+              fontFamily: "var(--font-code, monospace)",
+              fontSize: "12px",
+              backgroundColor: colors.bg.surface,
+              color: colors.text.secondary,
+              border: `1px solid ${specificPrError ? colors.status.behind : colors.border.default}`,
+              borderRadius: "4px",
+              padding: `${space["1"]} ${space["2"]}`,
+              outline: "none",
+            }}
+          />
+          <Button variant="ghost" size="sm" onClick={handleReviewSpecific} loading={specificPrReviewing}>
+            Review PR
+          </Button>
+        </div>
+        {specificPrError && (
+          <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "11px", color: colors.status.behind, marginTop: space["1"] }}>
+            {specificPrError}
+          </div>
+        )}
       </Panel>
 
       {/* Empty state / help */}

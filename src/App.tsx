@@ -53,6 +53,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/reports/:id" element={<ReportViewer />} />
+            <Route path="/reports/:id/:prNumber" element={<ReportViewer />} />
             <Route path="/configuration" element={<Configuration />} />
             <Route path="/profiles" element={<Profiles />} />
           </Routes>

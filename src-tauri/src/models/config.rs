@@ -18,7 +18,13 @@ pub struct RepoConfig {
     pub repo: String,
     pub profile_id: String,
     pub enabled: bool,
+    #[serde(default)]
+    pub auto_post_comments: bool,
+    #[serde(default = "default_auto_action")]
+    pub auto_action: String, // "none" | "approve" | "request_changes"
 }
+
+fn default_auto_action() -> String { "none".to_string() }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,7 +70,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             github_username: String::new(),
-            repos: vec![],
+            repos: vec![], // RepoConfig fields have serde defaults
             schedule: ScheduleConfig {
                 enabled: false,
                 hour: 9,

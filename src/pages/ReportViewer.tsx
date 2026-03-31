@@ -7,7 +7,7 @@ import type { Report } from "@/types/review"
 import PRCard from "@/components/review/PRCard"
 
 export default function ReportViewer() {
-  const { id } = useParams<{ id: string }>()
+  const { id, prNumber } = useParams<{ id: string; prNumber?: string }>()
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -49,18 +49,20 @@ export default function ReportViewer() {
       </div>
       <h1 style={headerStyle}>Report</h1>
       <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.tertiary, marginBottom: space["6"] }}>
-        {new Date(report.runAt).toLocaleString()} &middot; {report.reviews.length} PR{report.reviews.length !== 1 ? "s" : ""} &middot; {report.engine}
+        {new Date(report.runAt).toLocaleString()} &middot; {report.engine}
       </div>
 
-      {report.reviews.map((review, i) => (
-        <PRCard key={i} review={review} />
-      ))}
-
-      {report.reviews.length === 0 && (
-        <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.tertiary }}>
-          No reviews in this report.
-        </div>
-      )}
+      {(() => {
+        const reviews = prNumber
+          ? report.reviews.filter(r => String(r.pr.number) === prNumber)
+          : report.reviews
+        if (reviews.length === 0) return (
+          <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "13px", color: colors.text.tertiary }}>
+            No reviews found.
+          </div>
+        )
+        return reviews.map((review, i) => <PRCard key={i} review={review} />)
+      })()}
     </div>
   )
 }

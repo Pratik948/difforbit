@@ -1,4 +1,4 @@
-use crate::commands::{config::get_config, engines::run_engine, github::fetch_pr_diff};
+use crate::commands::{config::get_config, engines::run_engine, github::{fetch_pr_diff, fetch_pr_info, approve_pr, request_changes, post_inline_comments, CommentData}};
 use crate::models::review::{Report, ReportMeta};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -246,6 +246,38 @@ pub async fn run_review_session(app: tauri::AppHandle, force: bool, changed_file
 
     while let Some(result) = join_set.join_next().await {
         if let Ok(Some((repo, pr_num, updated_at, head_sha, files, review))) = result {
+            // Auto-action: find the matching repo config
+            let repo_cfg = config.repos.iter().find(|r| {
+                format!("{}/{}", r.owner, r.repo) == repo
+            });
+            if let Some(rcfg) = repo_cfg {
+                let pr_number: u32 = pr_num.parse().unwrap_or(0);
+                // Auto-post comments
+                if rcfg.auto_post_comments && !review.issues.is_empty() {
+                    let comments: Vec<CommentData> = review.issues.iter()
+                        .filter(|iss| iss.selected && iss.file.is_some() && iss.line.is_some())
+                        .map(|iss| CommentData {
+                            path: iss.file.clone().unwrap(),
+                            line: iss.line.unwrap() as u32,
+                            side: "RIGHT".to_string(),
+                            body: iss.suggested_comment.clone(),
+                        })
+                        .collect();
+                    if !comments.is_empty() {
+                        let _ = post_inline_comments(app.clone(), repo.clone(), pr_number, comments, review.commit_sha.clone()).await;
+                    }
+                }
+                // Auto-action based on verdict
+                match rcfg.auto_action.as_str() {
+                    "approve" if review.verdict == "APPROVE" => {
+                        let _ = approve_pr(app.clone(), repo.clone(), pr_number).await;
+                    }
+                    "request_changes" if review.verdict == "REQUEST_CHANGES" => {
+                        let _ = request_changes(app.clone(), repo.clone(), pr_number, review.overall_notes.clone()).await;
+                    }
+                    _ => {}
+                }
+            }
             seen_updated.entry(repo).or_default().insert(pr_num, SeenEntry { updated_at, head_sha, files });
             reviews.push(review);
         }
@@ -327,6 +359,70 @@ pub fn load_report(app: tauri::AppHandle, id: String) -> Result<Report, String> 
 pub fn delete_report(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let path = reports_dir(&app).join(format!("{id}.json"));
     std::fs::remove_file(&path).map_err(|e| e.to_string())
+}
+
+/// Review a single specific PR by repo + number, bypassing the seen cache.
+/// Returns the report ID so the frontend can navigate directly to it.
+#[tauri::command]
+pub async fn review_specific_pr(
+    app: tauri::AppHandle,
+    repo: String,
+    number: u32,
+) -> Result<String, String> {
+    let config = get_config(app.clone())?;
+
+    // Fetch PR info (title, author, files, etc.)
+    let mut pr = fetch_pr_info(&app, &repo, number).await?;
+
+    // Fetch full diff
+    pr.diff = fetch_pr_diff(app.clone(), repo.clone(), number).await?;
+
+    // Find best matching profile (by repo config, or first profile)
+    let profile_id = config.repos.iter()
+        .find(|r| format!("{}/{}", r.owner, r.repo) == repo)
+        .map(|r| r.profile_id.clone())
+        .unwrap_or_default();
+
+    let profile = config.profiles.iter()
+        .find(|p| p.id == profile_id)
+        .or_else(|| config.profiles.first())
+        .cloned()
+        .unwrap_or_else(|| crate::commands::config::built_in_profiles()[0].clone());
+
+    let _ = app.emit("review:started", serde_json::json!({ "total_prs": 1 }));
+
+    let review = run_engine(&app, &pr, &profile, &config.engine).await
+        .map_err(|e| { let _ = app.emit("review:error", serde_json::json!({ "message": &e })); e })?;
+
+    let _ = app.emit("review:pr_done", serde_json::json!({
+        "pr_number": review.pr.number,
+        "verdict": review.verdict,
+        "issues_count": review.issues.len(),
+    }));
+
+    // Persist as a new single-PR report
+    let report_id = format!("{}", chrono::Utc::now().timestamp_millis());
+    let report = crate::models::review::Report {
+        id: report_id.clone(),
+        run_at: chrono::Utc::now().to_rfc3339(),
+        reviews: vec![review],
+        engine: format!("{}/{}", config.engine.r#type, config.engine.model),
+    };
+
+    let dir = reports_dir(&app);
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join(format!("{report_id}.json"));
+    if let Ok(data) = serde_json::to_string_pretty(&report) {
+        let _ = std::fs::write(&path, data);
+    }
+
+    let _ = app.emit("review:completed", serde_json::json!({
+        "report_id": report_id,
+        "pr_count": 1,
+        "message": format!("PR #{number} reviewed")
+    }));
+
+    Ok(report_id)
 }
 
 #[tauri::command]
