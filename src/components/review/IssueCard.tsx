@@ -165,7 +165,7 @@ export default function IssueCard({ issue, index, onToggleSelected, onEditCommen
         )}
       </div>
 
-      {diffOpen && issue.diffHunk && <DiffViewer lines={issue.diffHunk} />}
+      {diffOpen && issue.diffHunk && <DiffViewer lines={issue.diffHunk} targetLine={issue.line ?? undefined} />}
     </div>
   )
 }

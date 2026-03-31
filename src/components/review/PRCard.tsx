@@ -4,7 +4,7 @@ import { Panel, Button, Modal, useToast } from "@/components/ui"
 import type { PRReview } from "@/types/review"
 import VerdictBadge from "./VerdictBadge"
 import IssueCard from "./IssueCard"
-import { postInlineComments, approvePr, requestChanges } from "@/ipc/github"
+import { postInlineComments, approvePr, approvePrWithBody, requestChanges } from "@/ipc/github"
 import type { CommentData } from "@/ipc/github"
 import { triggerForceRun } from "@/ipc/review"
 import { prReviewToMarkdown, saveMarkdown, printAsPdf } from "@/utils/exportReview"
@@ -13,29 +13,30 @@ interface PRCardProps {
   review: PRReview
 }
 
-const actionedKey = (review: PRReview) => `difforbit-actioned-${review.pr.repo}-${review.pr.number}`
-
-function isActioned(review: PRReview): boolean {
-  try {
-    const raw = localStorage.getItem(actionedKey(review))
-    if (!raw) return false
-    const { headSha } = JSON.parse(raw) as { headSha: string; at: string }
-    // Only treat as actioned if the PR hasn't been updated since (same commit SHA)
-    return headSha === review.commitSha
-  } catch {
-    return false
-  }
+interface ActionState {
+  commentsPosted: boolean
+  approved: boolean
+  changesRequested: boolean
+  at: string | null
 }
 
-function getActionedAt(review: PRReview): string | null {
+const actionedKey = (review: PRReview) => `difforbit-actioned-${review.pr.repo}-${review.pr.number}`
+
+function loadActionState(review: PRReview): ActionState {
+  const empty: ActionState = { commentsPosted: false, approved: false, changesRequested: false, at: null }
   try {
     const raw = localStorage.getItem(actionedKey(review))
-    if (!raw) return null
-    const { headSha, at } = JSON.parse(raw) as { headSha: string; at: string }
-    if (headSha !== review.commitSha) return null
-    return at
+    if (!raw) return empty
+    const parsed = JSON.parse(raw) as { headSha: string; at: string; commentsPosted?: boolean; approved?: boolean; changesRequested?: boolean }
+    if (parsed.headSha !== review.commitSha) return empty
+    return {
+      commentsPosted: parsed.commentsPosted ?? false,
+      approved: parsed.approved ?? false,
+      changesRequested: parsed.changesRequested ?? false,
+      at: parsed.at,
+    }
   } catch {
-    return null
+    return empty
   }
 }
 
@@ -44,17 +45,25 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
   const [positiveOpen, setPositiveOpen] = useState(false)
   const [requestBody, setRequestBody] = useState("")
   const [requestModalOpen, setRequestModalOpen] = useState(false)
+  const [approveBody, setApproveBody] = useState("")
+  const [approveWithCommentOpen, setApproveWithCommentOpen] = useState(false)
+  const [approveDropdownOpen, setApproveDropdownOpen] = useState(false)
   const [posting, setPosting] = useState(false)
   const [approving, setApproving] = useState(false)
   const [exportingMd, setExportingMd] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
-  const [actioned, setActioned] = useState(() => isActioned(initialReview))
-  const actionedAt = actioned ? getActionedAt(review) : null
+  const [actions, setActions] = useState<ActionState>(() => loadActionState(initialReview))
   const { addToast } = useToast()
 
-  const markActioned = () => {
-    localStorage.setItem(actionedKey(review), JSON.stringify({ headSha: review.commitSha, at: new Date().toISOString() }))
-    setActioned(true)
+  const persistActions = (updated: ActionState) => {
+    localStorage.setItem(actionedKey(review), JSON.stringify({
+      headSha: review.commitSha,
+      at: updated.at ?? new Date().toISOString(),
+      commentsPosted: updated.commentsPosted,
+      approved: updated.approved,
+      changesRequested: updated.changesRequested,
+    }))
+    setActions(updated)
   }
 
   const toggleIssueSelected = (index: number, selected: boolean) => {
@@ -81,7 +90,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
       const result = await postInlineComments(review.pr.repo, review.pr.number, comments, review.commitSha)
       addToast({ variant: "success", message: `Posted ${result.posted} comment(s).` })
       if (result.failed > 0) addToast({ variant: "error", message: `${result.failed} failed.` })
-      markActioned()
+      persistActions({ ...actions, commentsPosted: true, at: actions.at ?? new Date().toISOString() })
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
     } finally {
@@ -89,12 +98,18 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
     }
   }
 
-  const handleApprove = async () => {
+  const handleApprove = async (body?: string) => {
     setApproving(true)
     try {
-      await approvePr(review.pr.repo, review.pr.number)
+      if (body && body.trim()) {
+        await approvePrWithBody(review.pr.repo, review.pr.number, body.trim())
+      } else {
+        await approvePr(review.pr.repo, review.pr.number)
+      }
       addToast({ variant: "success", message: `Approved #${review.pr.number}.` })
-      markActioned()
+      persistActions({ ...actions, approved: true, at: new Date().toISOString() })
+      setApproveWithCommentOpen(false)
+      setApproveBody("")
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
     } finally {
@@ -107,7 +122,7 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
       await requestChanges(review.pr.repo, review.pr.number, requestBody)
       addToast({ variant: "success", message: `Requested changes on #${review.pr.number}.` })
       setRequestModalOpen(false)
-      markActioned()
+      persistActions({ ...actions, changesRequested: true, at: new Date().toISOString() })
     } catch (e) {
       addToast({ variant: "error", message: String(e) })
     }
@@ -214,33 +229,86 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
       )}
 
       {/* Action bar */}
-      <div style={{ display: "flex", gap: space["2"], borderTop: `1px solid ${colors.border.default}`, paddingTop: space["3"], flexWrap: "wrap" as const }}>
+      <div style={{ display: "flex", gap: space["2"], borderTop: `1px solid ${colors.border.default}`, paddingTop: space["3"], flexWrap: "wrap" as const, alignItems: "center" }}>
         <Button
           variant="primary"
           size="sm"
           onClick={handlePostComments}
           loading={posting}
-          {...(actioned || selectedCount === 0 ? { disabled: true } as Record<string, boolean> : {})}
+          {...(actions.commentsPosted || selectedCount === 0 ? { disabled: true } as Record<string, boolean> : {})}
         >
-          Post {selectedCount} comment{selectedCount !== 1 ? "s" : ""}
+          {actions.commentsPosted ? "Comments posted" : `Post ${selectedCount} comment${selectedCount !== 1 ? "s" : ""}`}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleApprove}
-          loading={approving}
-          {...(actioned ? { disabled: true } as Record<string, boolean> : {})}
-        >
-          Approve
-        </Button>
+
+        {/* Approve split button */}
+        <div style={{ position: "relative", display: "flex" }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleApprove()}
+            loading={approving}
+            {...(actions.approved ? { disabled: true } as Record<string, boolean> : {})}
+            style={{ borderRadius: "4px 0 0 4px", borderRight: "none" }}
+          >
+            {actions.approved ? "Approved ✓" : "Approve"}
+          </Button>
+          {!actions.approved && (
+            <button
+              onClick={() => setApproveDropdownOpen(v => !v)}
+              style={{
+                fontFamily: "var(--font-body, system-ui, sans-serif)",
+                fontSize: "11px",
+                padding: `3px ${space["1"]}`,
+                background: "none",
+                border: `1px solid ${colors.border.default}`,
+                borderLeft: "none",
+                borderRadius: "0 4px 4px 0",
+                color: colors.text.tertiary,
+                cursor: "pointer",
+              }}
+            >
+              ▾
+            </button>
+          )}
+          {approveDropdownOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 50,
+                background: colors.bg.elevated,
+                border: `1px solid ${colors.border.default}`,
+                borderRadius: "4px",
+                minWidth: "160px",
+                marginTop: "2px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              <button
+                onClick={() => { setApproveDropdownOpen(false); setApproveWithCommentOpen(true) }}
+                style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  fontFamily: "var(--font-body, system-ui, sans-serif)", fontSize: "12px",
+                  color: colors.text.secondary, background: "none", border: "none",
+                  padding: `${space["2"]} ${space["3"]}`, cursor: "pointer",
+                }}
+              >
+                Approve with comment…
+              </button>
+            </div>
+          )}
+        </div>
+
         <Button
           variant="danger"
           size="sm"
           onClick={() => setRequestModalOpen(true)}
-          {...(actioned ? { disabled: true } as Record<string, boolean> : {})}
+          {...(actions.changesRequested ? { disabled: true } as Record<string, boolean> : {})}
         >
-          Request changes
+          {actions.changesRequested ? "Changes requested ✓" : "Request changes"}
         </Button>
+
         <div style={{ marginLeft: "auto", display: "flex", gap: space["2"] }}>
           <Button variant="ghost" size="sm" onClick={() => triggerForceRun().catch(() => {})}>
             Re-review
@@ -249,14 +317,14 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
           <Button variant="ghost" size="sm" onClick={handleExportPdf} loading={exportingPdf}>Export PDF</Button>
         </div>
       </div>
-      {actioned && actionedAt && (
+      {actions.at && (
         <div style={{
           marginTop: space["2"],
           fontFamily: "var(--font-body, system-ui, sans-serif)",
           fontSize: "11px",
           color: colors.text.ghost,
         }}>
-          Reviewed on {new Date(actionedAt).toLocaleString()}
+          Last action on {new Date(actions.at).toLocaleString()}
         </div>
       )}
 
@@ -284,6 +352,33 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
         <div style={{ display: "flex", gap: space["2"] }}>
           <Button variant="danger" onClick={handleRequestChanges}>Submit</Button>
           <Button variant="ghost" onClick={() => setRequestModalOpen(false)}>Cancel</Button>
+        </div>
+      </Modal>
+
+      {/* Approve with comment modal */}
+      <Modal open={approveWithCommentOpen} onClose={() => setApproveWithCommentOpen(false)} title="Approve with Comment" size="sm">
+        <textarea
+          value={approveBody}
+          onChange={e => setApproveBody(e.target.value)}
+          placeholder="Optional approval comment..."
+          rows={4}
+          style={{
+            width: "100%",
+            fontFamily: "var(--font-body, system-ui, sans-serif)",
+            fontSize: "13px",
+            backgroundColor: colors.bg.surface,
+            color: colors.text.secondary,
+            border: `1px solid ${colors.border.default}`,
+            borderRadius: "4px",
+            padding: space["2"],
+            resize: "vertical",
+            boxSizing: "border-box",
+            marginBottom: space["3"],
+          }}
+        />
+        <div style={{ display: "flex", gap: space["2"] }}>
+          <Button variant="primary" onClick={() => handleApprove(approveBody)} loading={approving}>Approve</Button>
+          <Button variant="ghost" onClick={() => setApproveWithCommentOpen(false)}>Cancel</Button>
         </div>
       </Modal>
     </Panel>

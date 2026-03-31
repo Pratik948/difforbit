@@ -40,3 +40,7 @@ export async function getLaunchAgentStatus(): Promise<boolean> {
 export async function setLaunchAgent(enabled: boolean): Promise<void> {
   return invoke<void>("set_launch_agent", { enabled })
 }
+
+export async function reviewSpecificPr(repo: string, number: number): Promise<string> {
+  return invoke<string>("review_specific_pr", { repo, number })
+}

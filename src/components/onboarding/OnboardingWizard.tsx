@@ -281,7 +281,7 @@ function StepAddRepo() {
   async function addRepo() {
     if (!owner || !repo || !config) return
     const defaultProfile = config.profiles[0]?.id ?? "generic"
-    const newRepo = { owner, repo, profileId: defaultProfile, enabled: true }
+    const newRepo = { owner, repo, profileId: defaultProfile, enabled: true, autoPostComments: false, autoAction: "none" as const }
     await saveConfig({ ...config, repos: [...config.repos, newRepo] })
     setAdded(true)
   }

@@ -11,11 +11,15 @@ export interface ReviewProfile {
   isBuiltIn: boolean
 }
 
+export type AutoAction = "none" | "approve" | "request_changes"
+
 export interface RepoConfig {
   owner: string
   repo: string
   profileId: string
   enabled: boolean
+  autoPostComments: boolean
+  autoAction: AutoAction
 }
 
 export interface ScheduleConfig {
