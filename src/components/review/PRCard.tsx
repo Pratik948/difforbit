@@ -257,8 +257,8 @@ export default function PRCard({ review: initialReview }: PRCardProps) {
               onClick={() => setApproveDropdownOpen(v => !v)}
               style={{
                 fontFamily: "var(--font-body, system-ui, sans-serif)",
-                fontSize: "11px",
-                padding: `3px ${space["1"]}`,
+                fontSize: "18px",
+                padding: `3px ${space["2"]}`,
                 background: "none",
                 border: `1px solid ${colors.border.default}`,
                 borderLeft: "none",

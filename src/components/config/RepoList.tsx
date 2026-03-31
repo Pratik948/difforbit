@@ -80,7 +80,7 @@ export default function RepoList({ repos, profiles, onChange }: RepoListProps) {
               <button
                 onClick={() => setExpandedIdx(isExpanded ? null : idx)}
                 title="Auto-action settings"
-                style={{ background: "none", border: `1px solid ${colors.border.default}`, borderRadius: "3px", padding: `1px ${space["1"]}`, cursor: "pointer", color: colors.text.tertiary, fontSize: "10px" }}
+                style={{ background: "none", border: `1px solid ${colors.border.default}`, borderRadius: "3px", padding: `3px ${space["4"]}`, cursor: "pointer", color: colors.text.tertiary, fontSize: "18px" }}
               >
                 ⚙
               </button>
