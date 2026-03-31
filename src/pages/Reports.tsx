@@ -322,7 +322,7 @@ export default function Reports() {
 
                 {/* Row 3: actions */}
                 <div style={{ display: "flex", alignItems: "center", gap: space["2"], borderTop: `1px solid ${colors.border.default}`, paddingTop: space["3"] }}>
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/reports/${report.id}`)}>
+                  <Button variant="ghost" size="sm" onClick={() => navigate(`/reports/${report.id}/${review.pr.number}`)}>
                     View
                   </Button>
                   <Button variant="danger" size="sm" onClick={() => setConfirmDelete(report.id)}>
